@@ -7,9 +7,12 @@ import io.distorio.ui.common.IconUtil;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javafx.event.ActionEvent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -22,6 +25,9 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.ToolBar;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.image.WritableImage;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -29,18 +35,9 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.geometry.Pos;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
-import javafx.scene.image.WritableImage;
-import javafx.embed.swing.SwingFXUtils;
-import javax.imageio.ImageIO;
 
 public class MainWindow {
 
-  public enum IconMode {ICON_ONLY, ICON_TEXT}
-
-  private IconMode iconMode = IconMode.ICON_TEXT;
   private final BorderPane root = new BorderPane();
   private final MenuBar menuBar = new MenuBar();
   private final ToolBar toolBar = new ToolBar();
@@ -54,17 +51,21 @@ public class MainWindow {
   private final AppImageContext imageContext = new AppImageContext();
   private final ImageView imageView = new ImageView();
   private final Pane overlayPane = new Pane();
-  private double zoom = 1.0;
   private final Slider zoomSlider = new Slider(5, 600, 100);
+  private final Label zoomPercentLabel = new Label();
+  private final OverlayHelper overlayHelper;
+  private final Stage stage;
+  private IconMode iconMode = IconMode.ICON_TEXT;
+  private double zoom = 1.0;
   private boolean handMode = false;
   private Button handButton;
-  private final OverlayHelper overlayHelper;
   private double selectionStartX, selectionStartY;
   private double selectionEndX, selectionEndY;
   private boolean isSelecting = false;
   private boolean isCentering = false;
-
+  private boolean dirty = false;
   public MainWindow(Stage stage) {
+    this.stage = stage;
     // Menu bar
     Menu fileMenu = new Menu(I18n.get("menu.file"));
     MenuItem openItem = new MenuItem(I18n.get("toolbar.open"));
@@ -73,7 +74,7 @@ public class MainWindow {
     MenuItem saveAsItem = new MenuItem(I18n.get("toolbar.saveas"));
     MenuItem exitItem = new MenuItem("Exit");
     fileMenu.getItems().addAll(openItem, closeItem, new SeparatorMenuItem(), saveItem, saveAsItem,
-      new SeparatorMenuItem(), exitItem);
+        new SeparatorMenuItem(), exitItem);
 
     Menu editMenu = new Menu(I18n.get("menu.edit"));
     MenuItem undoItem = new MenuItem(I18n.get("toolbar.undo"));
@@ -184,12 +185,14 @@ public class MainWindow {
     statusBar.getChildren().clear();
     statusBar.getChildren().add(new Label(I18n.get("status.zoom")));
     statusBar.getChildren().add(zoomSlider);
+    statusBar.getChildren().add(zoomPercentLabel);
     statusBar.setSpacing(8);
     statusBar.getStyleClass().add("status-bar");
     zoomSlider.setValue(100);
     zoomSlider.valueProperty().addListener((obs, oldV, newV) -> {
       setZoom(newV.doubleValue() / 100.0);
     });
+    updateZoomPercentLabel();
 
     // Main area with scroll pane to handle zoom properly
     mainArea.getChildren().clear();
@@ -211,7 +214,7 @@ public class MainWindow {
       if (imageView.getImage() != null && oldBounds != null && newBounds != null) {
         // Only center if the viewport actually changed significantly
         if (Math.abs(oldBounds.getWidth() - newBounds.getWidth()) > 1 ||
-          Math.abs(oldBounds.getHeight() - newBounds.getHeight()) > 1) {
+            Math.abs(oldBounds.getHeight() - newBounds.getHeight()) > 1) {
           // Use a longer delay for viewport changes
           javafx.application.Platform.runLater(() -> {
             javafx.application.Platform.runLater(() -> {
@@ -252,7 +255,7 @@ public class MainWindow {
       if (imageView.getImage() != null && oldBounds != null && newBounds != null) {
         // Only center if the image bounds actually changed significantly
         if (Math.abs(oldBounds.getWidth() - newBounds.getWidth()) > 1 ||
-          Math.abs(oldBounds.getHeight() - newBounds.getHeight()) > 1) {
+            Math.abs(oldBounds.getHeight() - newBounds.getHeight()) > 1) {
           // Use a longer delay for image bounds changes
           javafx.application.Platform.runLater(() -> {
             javafx.application.Platform.runLater(() -> {
@@ -359,6 +362,9 @@ public class MainWindow {
 
     // Initialize theme manager
     ThemeManager.setScene(scene);
+
+    // Set initial window title
+    updateWindowTitle();
   }
 
   private Button createToolbarButton(String i18nKey, String iconName) {
@@ -412,7 +418,9 @@ public class MainWindow {
     statusBar.getChildren().clear();
     statusBar.getChildren().add(new Label(I18n.get("status.zoom")));
     statusBar.getChildren().add(zoomSlider);
+    statusBar.getChildren().add(zoomPercentLabel);
     statusBar.setSpacing(8);
+    updateZoomPercentLabel();
   }
 
   /**
@@ -429,7 +437,7 @@ public class MainWindow {
     MenuItem saveAsItem = new MenuItem(I18n.get("toolbar.saveas"));
     MenuItem exitItem = new MenuItem("Exit");
     fileMenu.getItems().addAll(openItem, closeItem, new SeparatorMenuItem(), saveItem, saveAsItem,
-      new SeparatorMenuItem(), exitItem);
+        new SeparatorMenuItem(), exitItem);
 
     // Edit menu
     Menu editMenu = new Menu(I18n.get("menu.edit"));
@@ -549,6 +557,8 @@ public class MainWindow {
       op.apply(imageContext);
       operationHistory.push(op);
       updateImageView(); // Update display after operation
+      dirty = true;
+      updateWindowTitle();
     } else {
       // TODO: show preparation UI (e.g., selection, drag handles)
     }
@@ -572,11 +582,39 @@ public class MainWindow {
     }
   }
 
+  private boolean confirmDiscardUnsavedChanges() {
+    if (!dirty) {
+      return true;
+    }
+    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
+        javafx.scene.control.Alert.AlertType.CONFIRMATION);
+    alert.setTitle("Unsaved Changes");
+    alert.setHeaderText("You have unsaved changes.");
+    alert.setContentText("Do you want to save your changes before proceeding?");
+    ButtonType save = new ButtonType("Save");
+    ButtonType dontSave = new ButtonType("Don't Save");
+    ButtonType cancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+    alert.getButtonTypes().setAll(save, dontSave, cancel);
+    Optional<ButtonType> result = alert.showAndWait();
+    if (result.isPresent()) {
+      if (result.get() == save) {
+        handleSave();
+        return !dirty; // Only proceed if save succeeded
+      } else if (result.get() == dontSave) {
+        return true;
+      }
+    }
+    return false; // Cancel or closed dialog
+  }
+
   private void handleOpen(Stage stage) {
+    if (!confirmDiscardUnsavedChanges()) {
+      return;
+    }
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Open Image");
     fileChooser.getExtensionFilters().addAll(
-      new FileChooser.ExtensionFilter("Image Files", "*.svg", "*.jpg", "*.jpeg", "*.bmp", "*.gif")
+        new FileChooser.ExtensionFilter("Image Files", "*.svg", "*.jpg", "*.jpeg", "*.bmp", "*.gif")
     );
     File file = fileChooser.showOpenDialog(stage);
     if (file != null) {
@@ -586,6 +624,9 @@ public class MainWindow {
       // Calculate initial zoom to fit image in viewport
       calculateInitialZoom(img);
       updateImageView();
+      updateWindowTitle();
+      dirty = false;
+      updateWindowTitle();
     }
   }
 
@@ -600,8 +641,8 @@ public class MainWindow {
       double viewportHeight = scrollPane.getViewportBounds().getHeight();
 
       System.out.println(
-        "Initial zoom calculation - Image: " + img.getWidth() + "x" + img.getHeight() +
-          ", Viewport: " + viewportWidth + "x" + viewportHeight);
+          "Initial zoom calculation - Image: " + img.getWidth() + "x" + img.getHeight() +
+              ", Viewport: " + viewportWidth + "x" + viewportHeight);
 
       if (viewportWidth > 0 && viewportHeight > 0) {
         // Calculate zoom to fit image in viewport
@@ -612,6 +653,7 @@ public class MainWindow {
         // Set zoom to fit, but not smaller than 5%
         zoom = Math.max(0.05, Math.min(fitZoom, 6.0));
         zoomSlider.setValue(zoom * 100);
+        updateZoomPercentLabel();
 
         System.out.println("Calculated zoom: " + zoom + " (fitZoom: " + fitZoom + ")");
 
@@ -645,11 +687,11 @@ public class MainWindow {
     if (oldZoom != zoom) {
       adjustTranslateToMaintainView(0, 0, oldZoom);
     }
+    updateZoomPercentLabel();
   }
 
-
   private void adjustTranslateToMaintainView(double oldTranslateX, double oldTranslateY,
-    double oldZoom) {
+      double oldZoom) {
     Image img = imageView.getImage();
     if (img == null) {
       return;
@@ -865,7 +907,8 @@ public class MainWindow {
       handButton = new Button(null, IconUtil.icon("META-INF/icons/hand.svg", 20));
       handButton.getStyleClass().add("toolbox-button-icon-only");
     } else {
-      handButton = new Button(I18n.get("toolbox.hand"), IconUtil.icon("META-INF/icons/hand.svg", 20));
+      handButton = new Button(I18n.get("toolbox.hand"),
+          IconUtil.icon("META-INF/icons/hand.svg", 20));
       handButton.getStyleClass().add("toolbox-button");
     }
     handButton.setOnAction(e -> setHandMode(!handMode));
@@ -885,6 +928,9 @@ public class MainWindow {
   }
 
   private void handleClose() {
+    if (!confirmDiscardUnsavedChanges()) {
+      return;
+    }
     imageContext.setImage(null);
     imageContext.setSelection(0, 0, 0, 0);
     imageContext.setImageFile(null);
@@ -892,11 +938,16 @@ public class MainWindow {
     // Optionally clear operation history or overlays if needed
     operationHistory.clear();
     clearOverlay();
+    updateWindowTitle();
+    dirty = false;
+    updateWindowTitle();
   }
 
   private void handleCopy() {
     Image img = imageContext.getImage();
-    if (img == null) return;
+    if (img == null) {
+      return;
+    }
     WritableImage toCopy;
     if (imageContext.hasSelection()) {
       // Copy selection area
@@ -909,10 +960,12 @@ public class MainWindow {
         WritableImage selection = new WritableImage(img.getPixelReader(), x, y, w, h);
         toCopy = selection;
       } else {
-        toCopy = img instanceof WritableImage ? (WritableImage) img : new WritableImage(img.getPixelReader(), (int) img.getWidth(), (int) img.getHeight());
+        toCopy = img instanceof WritableImage ? (WritableImage) img
+            : new WritableImage(img.getPixelReader(), (int) img.getWidth(), (int) img.getHeight());
       }
     } else {
-      toCopy = img instanceof WritableImage ? (WritableImage) img : new WritableImage(img.getPixelReader(), (int) img.getWidth(), (int) img.getHeight());
+      toCopy = img instanceof WritableImage ? (WritableImage) img
+          : new WritableImage(img.getPixelReader(), (int) img.getWidth(), (int) img.getHeight());
     }
     ClipboardContent content = new ClipboardContent();
     content.putImage(toCopy);
@@ -926,16 +979,21 @@ public class MainWindow {
       if (img != null) {
         imageContext.setImage(img);
         imageContext.setSelection(0, 0, 0, 0);
-        imageContext.setImageFile(null);
+        imageContext.setImageFile(null); // Do not set to 'Untitled'
         updateImageView();
         clearOverlay();
+        dirty = true;
+        // Set window title to 'Untitled - Distorio' and mark as modified
+        stage.setTitle("*Untitled - Distorio");
       }
     }
   }
 
   private void handleSave() {
     Image img = imageContext.getImage();
-    if (img == null) return;
+    if (img == null) {
+      return;
+    }
     File file = imageContext.getImageFile();
     if (file == null) {
       // No file path, fallback to Save As
@@ -944,43 +1002,80 @@ public class MainWindow {
     }
     String ext = "png";
     String fileName = file.getName().toLowerCase();
-    if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) ext = "jpg";
-    else if (fileName.endsWith(".bmp")) ext = "bmp";
+    if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+      ext = "jpg";
+    } else if (fileName.endsWith(".bmp")) {
+      ext = "bmp";
+    }
     try {
-      javax.imageio.ImageIO.write(javafx.embed.swing.SwingFXUtils.fromFXImage(img, null), ext, file);
+      javax.imageio.ImageIO.write(javafx.embed.swing.SwingFXUtils.fromFXImage(img, null), ext,
+          file);
+      dirty = false;
+      updateWindowTitle();
     } catch (Exception ex) {
       ex.printStackTrace();
     }
   }
 
-  private void handleSaveAs() {
+  private boolean handleSaveAs() {
     Image img = imageContext.getImage();
-    if (img == null) return;
+    if (img == null) {
+      return false;
+    }
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Save Image As");
     fileChooser.getExtensionFilters().addAll(
-      new FileChooser.ExtensionFilter("PNG Image", "*.png"),
-      new FileChooser.ExtensionFilter("JPEG Image", "*.jpg", "*.jpeg"),
-      new FileChooser.ExtensionFilter("Bitmap Image", "*.bmp")
+        new FileChooser.ExtensionFilter("PNG Image", "*.png"),
+        new FileChooser.ExtensionFilter("JPEG Image", "*.jpg", "*.jpeg"),
+        new FileChooser.ExtensionFilter("Bitmap Image", "*.bmp")
     );
     File file = fileChooser.showSaveDialog(null);
     if (file != null) {
       String ext = "png";
       String fileName = file.getName().toLowerCase();
-      if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) ext = "jpg";
-      else if (fileName.endsWith(".bmp")) ext = "bmp";
+      if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+        ext = "jpg";
+      } else if (fileName.endsWith(".bmp")) {
+        ext = "bmp";
+      }
       try {
-        javax.imageio.ImageIO.write(javafx.embed.swing.SwingFXUtils.fromFXImage(img, null), ext, file);
+        javax.imageio.ImageIO.write(javafx.embed.swing.SwingFXUtils.fromFXImage(img, null), ext,
+            file);
         imageContext.setImageFile(file);
+        updateWindowTitle();
+        dirty = false;
+        updateWindowTitle();
+        return true;
       } catch (Exception ex) {
         ex.printStackTrace();
+        return false;
       }
     }
+    return false; // User cancelled the save dialog
+  }
+
+  private void updateWindowTitle() {
+    String baseTitle = "Distorio";
+    File file = imageContext.getImageFile();
+    String prefix = dirty ? "*" : "";
+    if (file != null) {
+      stage.setTitle(prefix + file.getName() + " - " + baseTitle);
+    } else {
+      stage.setTitle(baseTitle);
+    }
+  }
+
+  private void updateZoomPercentLabel() {
+    int percent = (int) Math.round(zoom * 100);
+    zoomPercentLabel.setText(percent + "%");
   }
 
   // Helper method for drag-and-drop file type check
   private boolean isImageFile(File file) {
     String name = file.getName().toLowerCase();
-    return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".bmp") || name.endsWith(".gif") || name.endsWith(".svg");
+    return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")
+        || name.endsWith(".bmp") || name.endsWith(".gif") || name.endsWith(".svg");
   }
+
+  public enum IconMode {ICON_ONLY, ICON_TEXT}
 }

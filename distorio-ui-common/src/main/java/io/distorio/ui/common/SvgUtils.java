@@ -2,8 +2,6 @@ package io.distorio.ui.common;
 
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -67,7 +65,7 @@ public final class SvgUtils {
   public static Image loadSvg(InputStream ins, Map<String, String> colorReplacements) {
     try {
       // 1. Read the content of the SVG file into a string
-      String svgContent = readStringFromUrl(ins);
+      String svgContent = readStringFromIns(ins);
 
       // 2. If color replacements are provided, perform string substitution
       if (colorReplacements != null && !colorReplacements.isEmpty()) {
@@ -112,13 +110,13 @@ public final class SvgUtils {
   }
 
   /**
-   * Reads all content from a URL and returns it as a single string.
+   * Reads all content from a InputStream and returns it as a single string.
    *
-   * @param ins The URL to read from.
+   * @param ins The InputStream to read from.
    * @return The content of the URL as a string.
    * @throws IOException if an I/O error occurs.
    */
-  private static String readStringFromUrl(InputStream ins) throws IOException {
+  private static String readStringFromIns(InputStream ins) throws IOException {
     try (BufferedReader reader = new BufferedReader(
       new InputStreamReader(ins, StandardCharsets.UTF_8))) {
       return reader.lines().collect(Collectors.joining("\n"));
