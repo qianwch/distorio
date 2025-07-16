@@ -1,6 +1,7 @@
 package io.distorio.operation.api;
 
 import java.util.Optional;
+import javafx.scene.image.Image;
 
 public interface ImageOperation {
 
@@ -55,6 +56,13 @@ public interface ImageOperation {
    * Context for operation execution (image, selection, etc.).
    */
   interface OperationContext {
-    // Placeholder for image, selection, and other context data
+    /**
+     * Get the current image. Expected type: javafx.scene.image.Image
+     */
+    Image getImage();
+    /**
+     * Set the current image. Expected type: javafx.scene.image.Image
+     */
+    void setImage(Image image);
   }
 }

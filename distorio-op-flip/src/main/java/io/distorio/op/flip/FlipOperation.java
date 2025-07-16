@@ -2,16 +2,18 @@ package io.distorio.op.flip;
 
 import io.distorio.operation.api.ImageOperation;
 import java.util.Optional;
+import javafx.scene.image.Image;
+import javafx.scene.image.PixelReader;
+import javafx.scene.image.WritableImage;
+import javafx.scene.image.PixelWriter;
 
 public class FlipOperation implements ImageOperation {
 
-  private boolean flipHorizontal = true; // Default to horizontal flip
+  public enum Direction { LEFT, RIGHT }
+  private final Direction direction;
 
-  public FlipOperation() {
-  }
-
-  public FlipOperation(boolean horizontal) {
-    this.flipHorizontal = horizontal;
+  public FlipOperation(Direction direction) {
+    this.direction = direction;
   }
 
   @Override
@@ -19,57 +21,80 @@ public class FlipOperation implements ImageOperation {
     return new OperationMetadata() {
       @Override
       public String getId() {
-        return "flip";
+        return direction == Direction.LEFT ? "flip_left" : "flip_right";
       }
 
       @Override
       public String getDisplayName() {
-        return flipHorizontal ? "Flip Horizontal" : "Flip Vertical";
+        return direction == Direction.LEFT ? "Flip Left" : "Flip Right";
       }
 
       @Override
       public Optional<String> getIconPath() {
-        return Optional.of(flipHorizontal ? "META-INF/icons/flip_left.svg" : "META-INF/icons/flip_right.svg");
+        return Optional.of(direction == Direction.LEFT ? "META-INF/icons/flip_left.svg" : "META-INF/icons/flip_right.svg");
       }
 
       @Override
       public Optional<String> getHotkey() {
-        return Optional.of(flipHorizontal ? "Ctrl+H" : "Ctrl+V");
+        return Optional.of(direction == Direction.LEFT ? "Ctrl+L" : "Ctrl+R");
       }
 
       @Override
       public Optional<String> getMenuPath() {
-        return Optional.of("Tools/" + (flipHorizontal ? "Flip Horizontal" : "Flip Vertical"));
+        return Optional.of("Tools/" + (direction == Direction.LEFT ? "Flip Left" : "Flip Right"));
       }
     };
   }
 
   @Override
   public boolean prepare(OperationContext context) {
-    // Always ready for flip operations
     return true;
   }
 
   @Override
   public void preview(OperationContext context) {
-    // TODO: Show preview of flipped image
   }
 
   @Override
   public void apply(OperationContext context) {
-    // TODO: Actually flip the image
-    System.out.println("Flip operation applied: " + (flipHorizontal ? "Horizontal" : "Vertical"));
+    try {
+      java.lang.reflect.Method getImage = context.getClass().getMethod("getImage");
+      java.lang.reflect.Method setImage = context.getClass().getMethod("setImage", Image.class);
+      Image src = (Image) getImage.invoke(context);
+      if (src == null) return;
+      int width = (int) src.getWidth();
+      int height = (int) src.getHeight();
+      PixelReader reader = src.getPixelReader();
+      WritableImage rotated = new WritableImage(height, width); // Note swapped dimensions
+      PixelWriter writer = rotated.getPixelWriter();
+      if (direction == Direction.LEFT) {
+        // 90° counterclockwise: (x, y) -> (y, width-1-x)
+        for (int y = 0; y < height; y++) {
+          for (int x = 0; x < width; x++) {
+            writer.setArgb(y, width - 1 - x, reader.getArgb(x, y));
+          }
+        }
+      } else {
+        // 90° clockwise: (x, y) -> (height-1-y, x)
+        for (int y = 0; y < height; y++) {
+          for (int x = 0; x < width; x++) {
+            writer.setArgb(height - 1 - y, x, reader.getArgb(x, y));
+          }
+        }
+      }
+      setImage.invoke(context, rotated);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
   public void undo(OperationContext context) {
-    // TODO: Undo the flip operation
-    System.out.println("Undo flip operation: " + (flipHorizontal ? "Horizontal" : "Vertical"));
+    System.out.println("Undo flip operation: " + (direction == Direction.LEFT ? "Left" : "Right"));
   }
 
   @Override
   public void redo(OperationContext context) {
-    // TODO: Redo the flip operation
-    System.out.println("Redo flip operation: " + (flipHorizontal ? "Horizontal" : "Vertical"));
+    System.out.println("Redo flip operation: " + (direction == Direction.LEFT ? "Left" : "Right"));
   }
 }

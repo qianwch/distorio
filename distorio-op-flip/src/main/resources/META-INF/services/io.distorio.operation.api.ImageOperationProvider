@@ -1,1 +1,2 @@
-io.distorio.op.flip.FlipOperationProvider 
+io.distorio.op.flip.FlipLeftOperationProvider
+io.distorio.op.flip.FlipRightOperationProvider 

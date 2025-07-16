@@ -35,6 +35,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.control.Tooltip;
 
 public class MainWindow {
 
@@ -66,21 +68,34 @@ public class MainWindow {
   private boolean dirty = false;
   public MainWindow(Stage stage) {
     this.stage = stage;
+    // Detect Mac OS for shortcut key
+    boolean isMac = System.getProperty("os.name").toLowerCase().contains("mac");
+    String mod = isMac ? "Meta" : "Ctrl";
+    String modSymbol = isMac ? "⌘" : "^";
+
     // Menu bar
     Menu fileMenu = new Menu(I18n.get("menu.file"));
     MenuItem openItem = new MenuItem(I18n.get("toolbar.open"));
+    openItem.setAccelerator(KeyCombination.keyCombination(mod + "+O"));
     MenuItem closeItem = new MenuItem(I18n.get("toolbar.close"));
+    closeItem.setAccelerator(KeyCombination.keyCombination(mod + "+W"));
     MenuItem saveItem = new MenuItem(I18n.get("toolbar.save"));
+    saveItem.setAccelerator(KeyCombination.keyCombination(mod + "+S"));
     MenuItem saveAsItem = new MenuItem(I18n.get("toolbar.saveas"));
+    saveAsItem.setAccelerator(KeyCombination.keyCombination(mod + "+Shift+S"));
     MenuItem exitItem = new MenuItem("Exit");
     fileMenu.getItems().addAll(openItem, closeItem, new SeparatorMenuItem(), saveItem, saveAsItem,
         new SeparatorMenuItem(), exitItem);
 
     Menu editMenu = new Menu(I18n.get("menu.edit"));
     MenuItem undoItem = new MenuItem(I18n.get("toolbar.undo"));
+    undoItem.setAccelerator(KeyCombination.keyCombination(mod + "+Z"));
     MenuItem redoItem = new MenuItem(I18n.get("toolbar.redo"));
+    redoItem.setAccelerator(KeyCombination.keyCombination(mod + "+Y"));
     MenuItem copyItem = new MenuItem(I18n.get("toolbar.copy"));
+    copyItem.setAccelerator(KeyCombination.keyCombination(mod + "+C"));
     MenuItem pasteItem = new MenuItem(I18n.get("toolbar.paste"));
+    pasteItem.setAccelerator(KeyCombination.keyCombination(mod + "+V"));
     editMenu.getItems().addAll(undoItem, redoItem, new SeparatorMenuItem(), copyItem, pasteItem);
 
     // Replace static tools menu with dynamic
@@ -150,21 +165,29 @@ public class MainWindow {
     List<Button> toolbarButtons = new ArrayList<>();
     Button openBtn = createToolbarButton("toolbar.open", "META-INF/icons/file_open.svg");
     openBtn.setOnAction(e -> handleOpen(stage));
+    openBtn.setTooltip(new Tooltip("Open (" + modSymbol + "O)"));
     Button closeBtn = createToolbarButton("toolbar.close", "META-INF/icons/file_close.svg");
     closeBtn.setOnAction(e -> handleClose());
+    closeBtn.setTooltip(new Tooltip("Close (" + modSymbol + "W)"));
     Button saveBtn = createToolbarButton("toolbar.save", "META-INF/icons/file_save.svg");
     saveBtn.setOnAction(e -> handleSave());
+    saveBtn.setTooltip(new Tooltip("Save (" + modSymbol + "S)"));
     Button saveAsBtn = createToolbarButton("toolbar.saveas", "META-INF/icons/file_save_as.svg");
     saveAsBtn.setOnAction(e -> handleSaveAs());
+    saveAsBtn.setTooltip(new Tooltip("Save As (" + modSymbol + "⇧S)"));
     Button copyBtn = createToolbarButton("toolbar.copy", "META-INF/icons/copy.svg");
     copyBtn.setOnAction(e -> handleCopy());
+    copyBtn.setTooltip(new Tooltip("Copy (" + modSymbol + "C)"));
     Button pasteBtn = createToolbarButton("toolbar.paste", "META-INF/icons/paste.svg");
     pasteBtn.setOnAction(e -> handlePaste());
+    pasteBtn.setTooltip(new Tooltip("Paste (" + modSymbol + "V)"));
     // Undo/Redo buttons
     Button undoBtn = createToolbarButton("toolbar.undo", "META-INF/icons/undo.svg");
     undoBtn.setOnAction(e -> handleUndo());
+    undoBtn.setTooltip(new Tooltip("Undo (" + modSymbol + "Z)"));
     Button redoBtn = createToolbarButton("toolbar.redo", "META-INF/icons/redo.svg");
     redoBtn.setOnAction(e -> handleRedo());
+    redoBtn.setTooltip(new Tooltip("Redo (" + modSymbol + "Y)"));
     toolbarButtons.add(openBtn);
     toolbarButtons.add(closeBtn);
     toolbarButtons.add(saveBtn);
@@ -365,6 +388,13 @@ public class MainWindow {
 
     // Set initial window title
     updateWindowTitle();
+
+    // Prevent app from closing if there are unsaved changes and user cancels
+    stage.setOnCloseRequest(event -> {
+      if (!confirmDiscardUnsavedChanges()) {
+        event.consume(); // Prevent window from closing
+      }
+    });
   }
 
   private Button createToolbarButton(String i18nKey, String iconName) {
@@ -787,6 +817,8 @@ public class MainWindow {
     Image img = imageContext.getImage();
     if (img != null) {
       imageView.setImage(img);
+      // Reapply the current zoom to the new image
+      setZoom(zoom);
       // Reset translate to 0 and center the image
       imageView.setTranslateX(0);
       imageView.setTranslateY(0);
