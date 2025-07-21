@@ -368,13 +368,32 @@ public class MainWindow {
       if (db.hasFiles()) {
         for (File file : db.getFiles()) {
           if (isImageFile(file)) {
-            Image img = new Image(file.toURI().toString());
-            imageContext.setImage(img);
-            imageContext.setImageFile(file);
-            imageContext.setSelection(0, 0, 0, 0);
-            updateImageView();
-            clearOverlay();
-            success = true;
+            try {
+              java.awt.image.BufferedImage bufferedImage = javax.imageio.ImageIO.read(file);
+              if (bufferedImage != null) {
+                Image img = javafx.embed.swing.SwingFXUtils.toFXImage(bufferedImage, null);
+                imageContext.setImage(img);
+                imageContext.setImageFile(file);
+                imageContext.setSelection(0, 0, 0, 0);
+                updateImageView();
+                clearOverlay();
+                success = true;
+              } else {
+                // handle error: not a supported image
+                javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                alert.setTitle("Open Image Error");
+                alert.setHeaderText("Unsupported Image Format");
+                alert.setContentText("The dropped file could not be opened as an image.");
+                alert.showAndWait();
+              }
+            } catch (Exception ex) {
+              ex.printStackTrace();
+              javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+              alert.setTitle("Open Image Error");
+              alert.setHeaderText("Failed to open image");
+              alert.setContentText("An error occurred while opening the dropped image file.\n" + ex.getMessage());
+              alert.showAndWait();
+            }
             break;
           }
         }
@@ -643,20 +662,45 @@ public class MainWindow {
     }
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Open Image");
-    fileChooser.getExtensionFilters().addAll(
-        new FileChooser.ExtensionFilter("Image Files", "*.svg", "*.jpg", "*.jpeg", "*.bmp", "*.gif")
+    // Dynamically get supported image file types from ImageIO
+    String[] suffixes = javax.imageio.ImageIO.getReaderFileSuffixes();
+    java.util.List<String> patterns = new java.util.ArrayList<>();
+    for (String ext : suffixes) {
+      patterns.add("*." + ext.toLowerCase());
+    }
+    fileChooser.getExtensionFilters().add(
+        new FileChooser.ExtensionFilter("Image Files", patterns)
     );
     File file = fileChooser.showOpenDialog(stage);
     if (file != null) {
-      Image img = new Image(file.toURI().toString());
-      imageContext.setImage(img);
-      imageContext.setImageFile(file);
-      // Calculate initial zoom to fit image in viewport
-      calculateInitialZoom(img);
-      updateImageView();
-      updateWindowTitle();
-      dirty = false;
-      updateWindowTitle();
+      try {
+        java.awt.image.BufferedImage bufferedImage = javax.imageio.ImageIO.read(file);
+        if (bufferedImage != null) {
+          Image img = javafx.embed.swing.SwingFXUtils.toFXImage(bufferedImage, null);
+          imageContext.setImage(img);
+          imageContext.setImageFile(file);
+          // Calculate initial zoom to fit image in viewport
+          calculateInitialZoom(img);
+          updateImageView();
+          updateWindowTitle();
+          dirty = false;
+          updateWindowTitle();
+        } else {
+          // handle error: not a supported image
+          javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+          alert.setTitle("Open Image Error");
+          alert.setHeaderText("Unsupported Image Format");
+          alert.setContentText("The selected file could not be opened as an image.");
+          alert.showAndWait();
+        }
+      } catch (Exception ex) {
+        ex.printStackTrace();
+        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+        alert.setTitle("Open Image Error");
+        alert.setHeaderText("Failed to open image");
+        alert.setContentText("An error occurred while opening the image file.\n" + ex.getMessage());
+        alert.showAndWait();
+      }
     }
   }
 
@@ -1056,10 +1100,14 @@ public class MainWindow {
     }
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Save Image As");
-    fileChooser.getExtensionFilters().addAll(
-        new FileChooser.ExtensionFilter("PNG Image", "*.png"),
-        new FileChooser.ExtensionFilter("JPEG Image", "*.jpg", "*.jpeg"),
-        new FileChooser.ExtensionFilter("Bitmap Image", "*.bmp")
+    // Dynamically get supported image file types from ImageIO
+    String[] suffixes = javax.imageio.ImageIO.getWriterFileSuffixes();
+    java.util.List<String> patterns = new java.util.ArrayList<>();
+    for (String ext : suffixes) {
+      patterns.add("*." + ext.toLowerCase());
+    }
+    fileChooser.getExtensionFilters().add(
+        new FileChooser.ExtensionFilter("Image Files", patterns)
     );
     File file = fileChooser.showSaveDialog(null);
     if (file != null) {
