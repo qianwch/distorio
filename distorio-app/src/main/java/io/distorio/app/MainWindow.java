@@ -4,12 +4,23 @@ import io.distorio.operation.api.ImageOperation;
 import io.distorio.operation.api.OperationRegistry;
 import io.distorio.ui.common.I18n;
 import io.distorio.ui.common.IconUtil;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import javafx.application.Platform;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
+import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
@@ -28,6 +39,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
@@ -37,6 +49,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.control.Tooltip;
+import javax.imageio.ImageIO;
 
 public class MainWindow {
 
@@ -201,7 +214,7 @@ public class MainWindow {
     // Toolbox (dynamic)
     buildToolbox();
     toolbox.getStyleClass().add("toolbox");
-    toolbox.setAlignment(javafx.geometry.Pos.TOP_CENTER); // Align buttons to top
+    toolbox.setAlignment(Pos.TOP_CENTER); // Align buttons to top
     toolbox.setPrefWidth(100); // Make toolbox narrower
 
     // Status bar (placeholder)
@@ -239,8 +252,8 @@ public class MainWindow {
         if (Math.abs(oldBounds.getWidth() - newBounds.getWidth()) > 1 ||
             Math.abs(oldBounds.getHeight() - newBounds.getHeight()) > 1) {
           // Use a longer delay for viewport changes
-          javafx.application.Platform.runLater(() -> {
-            javafx.application.Platform.runLater(() -> {
+          Platform.runLater(() -> {
+            Platform.runLater(() -> {
               centerImageInViewport();
             });
           });
@@ -256,7 +269,7 @@ public class MainWindow {
     imageView.fitWidthProperty().addListener((obs, oldWidth, newWidth) -> {
       if (imageView.getImage() != null && oldWidth != null && newWidth != null) {
         if (Math.abs(oldWidth.doubleValue() - newWidth.doubleValue()) > 1) {
-          javafx.application.Platform.runLater(() -> {
+          Platform.runLater(() -> {
             centerImageInViewport();
           });
         }
@@ -266,7 +279,7 @@ public class MainWindow {
     imageView.fitHeightProperty().addListener((obs, oldHeight, newHeight) -> {
       if (imageView.getImage() != null && oldHeight != null && newHeight != null) {
         if (Math.abs(oldHeight.doubleValue() - newHeight.doubleValue()) > 1) {
-          javafx.application.Platform.runLater(() -> {
+          Platform.runLater(() -> {
             centerImageInViewport();
           });
         }
@@ -280,8 +293,8 @@ public class MainWindow {
         if (Math.abs(oldBounds.getWidth() - newBounds.getWidth()) > 1 ||
             Math.abs(oldBounds.getHeight() - newBounds.getHeight()) > 1) {
           // Use a longer delay for image bounds changes
-          javafx.application.Platform.runLater(() -> {
-            javafx.application.Platform.runLater(() -> {
+          Platform.runLater(() -> {
+            Platform.runLater(() -> {
               centerImageInViewport();
             });
           });
@@ -357,7 +370,7 @@ public class MainWindow {
         // Accept only if at least one file is an image
         boolean hasImage = event.getDragboard().getFiles().stream().anyMatch(f -> isImageFile(f));
         if (hasImage) {
-          event.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
+          event.acceptTransferModes(TransferMode.COPY);
         }
       }
       event.consume();
@@ -369,9 +382,9 @@ public class MainWindow {
         for (File file : db.getFiles()) {
           if (isImageFile(file)) {
             try {
-              java.awt.image.BufferedImage bufferedImage = javax.imageio.ImageIO.read(file);
+              BufferedImage bufferedImage = ImageIO.read(file);
               if (bufferedImage != null) {
-                Image img = javafx.embed.swing.SwingFXUtils.toFXImage(bufferedImage, null);
+                Image img = SwingFXUtils.toFXImage(bufferedImage, null);
                 imageContext.setImage(img);
                 imageContext.setImageFile(file);
                 imageContext.setSelection(0, 0, 0, 0);
@@ -380,7 +393,7 @@ public class MainWindow {
                 success = true;
               } else {
                 // handle error: not a supported image
-                javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+                Alert alert = new Alert(AlertType.ERROR);
                 alert.setTitle("Open Image Error");
                 alert.setHeaderText("Unsupported Image Format");
                 alert.setContentText("The dropped file could not be opened as an image.");
@@ -388,7 +401,7 @@ public class MainWindow {
               }
             } catch (Exception ex) {
               ex.printStackTrace();
-              javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+              Alert alert = new Alert(AlertType.ERROR);
               alert.setTitle("Open Image Error");
               alert.setHeaderText("Failed to open image");
               alert.setContentText("An error occurred while opening the dropped image file.\n" + ex.getMessage());
@@ -441,9 +454,9 @@ public class MainWindow {
 
   private void setLanguage(String lang) {
     if (lang.equals("en")) {
-      I18n.setLocale(java.util.Locale.ENGLISH);
+      I18n.setLocale(Locale.ENGLISH);
     } else if (lang.equals("zh")) {
-      I18n.setLocale(java.util.Locale.CHINESE);
+      I18n.setLocale(Locale.CHINESE);
     }
 
     // Rebuild all UI components using dynamic methods
@@ -635,8 +648,8 @@ public class MainWindow {
     if (!dirty) {
       return true;
     }
-    javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-        javafx.scene.control.Alert.AlertType.CONFIRMATION);
+    Alert alert = new Alert(
+        AlertType.CONFIRMATION);
     alert.setTitle("Unsaved Changes");
     alert.setHeaderText("You have unsaved changes.");
     alert.setContentText("Do you want to save your changes before proceeding?");
@@ -663,8 +676,8 @@ public class MainWindow {
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Open Image");
     // Dynamically get supported image file types from ImageIO
-    String[] suffixes = javax.imageio.ImageIO.getReaderFileSuffixes();
-    java.util.List<String> patterns = new java.util.ArrayList<>();
+    String[] suffixes = ImageIO.getReaderFileSuffixes();
+    List<String> patterns = new ArrayList<>();
     for (String ext : suffixes) {
       patterns.add("*." + ext.toLowerCase());
     }
@@ -674,9 +687,9 @@ public class MainWindow {
     File file = fileChooser.showOpenDialog(stage);
     if (file != null) {
       try {
-        java.awt.image.BufferedImage bufferedImage = javax.imageio.ImageIO.read(file);
+        BufferedImage bufferedImage = ImageIO.read(file);
         if (bufferedImage != null) {
-          Image img = javafx.embed.swing.SwingFXUtils.toFXImage(bufferedImage, null);
+          Image img = SwingFXUtils.toFXImage(bufferedImage, null);
           imageContext.setImage(img);
           imageContext.setImageFile(file);
           // Calculate initial zoom to fit image in viewport
@@ -687,7 +700,7 @@ public class MainWindow {
           updateWindowTitle();
         } else {
           // handle error: not a supported image
-          javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+          Alert alert = new Alert(AlertType.ERROR);
           alert.setTitle("Open Image Error");
           alert.setHeaderText("Unsupported Image Format");
           alert.setContentText("The selected file could not be opened as an image.");
@@ -695,7 +708,7 @@ public class MainWindow {
         }
       } catch (Exception ex) {
         ex.printStackTrace();
-        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+        Alert alert = new Alert(AlertType.ERROR);
         alert.setTitle("Open Image Error");
         alert.setHeaderText("Failed to open image");
         alert.setContentText("An error occurred while opening the image file.\n" + ex.getMessage());
@@ -710,7 +723,7 @@ public class MainWindow {
     }
 
     // Wait for the layout to be updated to get viewport dimensions
-    javafx.application.Platform.runLater(() -> {
+    Platform.runLater(() -> {
       double viewportWidth = scrollPane.getViewportBounds().getWidth();
       double viewportHeight = scrollPane.getViewportBounds().getHeight();
 
@@ -735,8 +748,8 @@ public class MainWindow {
         updateImageView();
 
         // Force centering after zoom calculation with additional delay
-        javafx.application.Platform.runLater(() -> {
-          javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
+          Platform.runLater(() -> {
             centerImageInViewport();
           });
         });
@@ -814,7 +827,7 @@ public class MainWindow {
     }
     isCentering = true;
 
-    javafx.application.Platform.runLater(() -> {
+    Platform.runLater(() -> {
       try {
         Image img = imageView.getImage();
         if (img == null) {
@@ -896,7 +909,7 @@ public class MainWindow {
     this.handMode = hand;
     if (hand) {
       // Start with open hand cursor
-      imageView.setCursor(javafx.scene.Cursor.OPEN_HAND);
+      imageView.setCursor(Cursor.OPEN_HAND);
       // Make overlay transparent to mouse events when in hand mode
       overlayPane.setMouseTransparent(true);
       // Enable ScrollPane panning
@@ -904,19 +917,19 @@ public class MainWindow {
 
       // Add mouse event handlers for cursor changes
       imageView.setOnMousePressed(e -> {
-        imageView.setCursor(javafx.scene.Cursor.CLOSED_HAND);
+        imageView.setCursor(Cursor.CLOSED_HAND);
       });
 
       imageView.setOnMouseReleased(e -> {
-        imageView.setCursor(javafx.scene.Cursor.OPEN_HAND);
+        imageView.setCursor(Cursor.OPEN_HAND);
       });
 
       imageView.setOnMouseExited(e -> {
-        imageView.setCursor(javafx.scene.Cursor.OPEN_HAND);
+        imageView.setCursor(Cursor.OPEN_HAND);
       });
 
     } else {
-      imageView.setCursor(javafx.scene.Cursor.DEFAULT);
+      imageView.setCursor(Cursor.DEFAULT);
       // Restore overlay mouse transparency based on selection state
       overlayPane.setMouseTransparent(!isSelecting);
       // Disable ScrollPane panning when not in hand mode
@@ -975,7 +988,7 @@ public class MainWindow {
     toolboxButtons.clear();
     toolboxOperations.clear();
     toolbox.getChildren().clear();
-    toolbox.setAlignment(javafx.geometry.Pos.TOP_CENTER); // Align buttons to top
+    toolbox.setAlignment(Pos.TOP_CENTER); // Align buttons to top
     toolbox.setPrefWidth(100); // Make toolbox narrower
 
     // Add hand button (special case - not an operation)
@@ -1084,8 +1097,12 @@ public class MainWindow {
       ext = "bmp";
     }
     try {
-      javax.imageio.ImageIO.write(javafx.embed.swing.SwingFXUtils.fromFXImage(img, null), ext,
-          file);
+      if ("jpg".equals(ext)) {
+        BufferedImage rgbImage = toBufferedImageNoAlpha(img);
+        ImageIO.write(rgbImage, ext, file);
+      } else {
+        ImageIO.write(SwingFXUtils.fromFXImage(img, null), ext, file);
+      }
       dirty = false;
       updateWindowTitle();
     } catch (Exception ex) {
@@ -1100,27 +1117,65 @@ public class MainWindow {
     }
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Save Image As");
-    // Dynamically get supported image file types from ImageIO
-    String[] suffixes = javax.imageio.ImageIO.getWriterFileSuffixes();
-    java.util.List<String> patterns = new java.util.ArrayList<>();
+
+    // List common types first
+    List<FileChooser.ExtensionFilter> filters = new ArrayList<>();
+    filters.add(new FileChooser.ExtensionFilter("JPEG (*.jpg, *.jpeg)", "*.jpg", "*.jpeg"));
+    filters.add(new FileChooser.ExtensionFilter("PNG (*.png)", "*.png"));
+    filters.add(new FileChooser.ExtensionFilter("BMP (*.bmp)", "*.bmp"));
+    filters.add(new FileChooser.ExtensionFilter("GIF (*.gif)", "*.gif"));
+
+    // Add less common types from ImageIO, skipping those already added
+    Set<String> commonExts = Set.of("png", "jpg", "jpeg", "bmp", "gif");
+    String[] suffixes = ImageIO.getWriterFileSuffixes();
     for (String ext : suffixes) {
-      patterns.add("*." + ext.toLowerCase());
+      String lower = ext.toLowerCase();
+      if (!commonExts.contains(lower)) {
+        filters.add(new FileChooser.ExtensionFilter((lower.toUpperCase() + " (*." + lower + ")"), "*." + lower));
+      }
     }
-    fileChooser.getExtensionFilters().add(
-        new FileChooser.ExtensionFilter("Image Files", patterns)
-    );
+    fileChooser.getExtensionFilters().addAll(filters);
+    fileChooser.setSelectedExtensionFilter(filters.get(0)); // Default to PNG
+
     File file = fileChooser.showSaveDialog(null);
     if (file != null) {
-      String ext = "png";
-      String fileName = file.getName().toLowerCase();
-      if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+      // Determine format and extension from selected filter
+      FileChooser.ExtensionFilter selected = fileChooser.getSelectedExtensionFilter();
+      String desc = selected.getDescription().toLowerCase();
+      String ext;
+      if (desc.contains("jpeg") || desc.contains("jpg")) {
         ext = "jpg";
-      } else if (fileName.endsWith(".bmp")) {
+      } else if (desc.contains("png")) {
+        ext = "png";
+      } else if (desc.contains("bmp")) {
         ext = "bmp";
+      } else if (desc.contains("gif")) {
+        ext = "gif";
+      } else {
+        // Fallback: use first extension in filter
+        String pat = selected.getExtensions().get(0);
+        ext = pat.substring(pat.lastIndexOf('.') + 1);
+      }
+      // Ensure file has correct extension
+      String fileName = file.getName().toLowerCase();
+      boolean hasExt = false;
+      for (String pat : selected.getExtensions()) {
+        String e = pat.replace("*.", "").toLowerCase();
+        if (fileName.endsWith("." + e)) {
+          hasExt = true;
+          break;
+        }
+      }
+      if (!hasExt) {
+        file = new File(file.getParent(), file.getName() + "." + ext);
       }
       try {
-        javax.imageio.ImageIO.write(javafx.embed.swing.SwingFXUtils.fromFXImage(img, null), ext,
-            file);
+        if ("jpg".equals(ext)) {
+          BufferedImage rgbImage = toBufferedImageNoAlpha(img);
+          ImageIO.write(rgbImage, ext, file);
+        } else {
+          ImageIO.write(SwingFXUtils.fromFXImage(img, null), ext, file);
+        }
         imageContext.setImageFile(file);
         updateWindowTitle();
         dirty = false;
@@ -1155,6 +1210,19 @@ public class MainWindow {
     String name = file.getName().toLowerCase();
     return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")
         || name.endsWith(".bmp") || name.endsWith(".gif") || name.endsWith(".svg");
+  }
+
+  // Helper to convert JavaFX Image to TYPE_INT_RGB BufferedImage (removes alpha)
+  private static BufferedImage toBufferedImageNoAlpha(Image img) {
+    BufferedImage src = SwingFXUtils.fromFXImage(img, null);
+    BufferedImage rgbImage = new BufferedImage(
+        src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
+    Graphics2D g = rgbImage.createGraphics();
+    g.setColor(Color.WHITE); // Fill with white background
+    g.fillRect(0, 0, src.getWidth(), src.getHeight());
+    g.drawImage(src, 0, 0, null);
+    g.dispose();
+    return rgbImage;
   }
 
   public enum IconMode {ICON_ONLY, ICON_TEXT}

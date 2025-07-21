@@ -53,7 +53,7 @@ public class ThemeManager {
     if (os.contains("mac")) {
       // macOS: check for dark mode
       try {
-        Process process = Runtime.getRuntime().exec("defaults read -g AppleInterfaceStyle");
+        Process process = new ProcessBuilder("defaults", "read", "-g", "AppleInterfaceStyle").start();
         int exitCode = process.waitFor();
         return exitCode == 0;
       } catch (Exception e) {
@@ -62,8 +62,11 @@ public class ThemeManager {
     } else if (os.contains("win")) {
       // Windows: check registry for dark mode
       try {
-        Process process = Runtime.getRuntime().exec(
-          "reg query \"HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\" /v AppsUseLightTheme");
+        Process process = new ProcessBuilder(
+          "reg", "query",
+          "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+          "/v", "AppsUseLightTheme"
+        ).start();
         int exitCode = process.waitFor();
         return exitCode == 0; // If the key exists, it means dark mode is enabled
       } catch (Exception e) {

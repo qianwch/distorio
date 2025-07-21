@@ -8,7 +8,7 @@ public class DistorioApp extends Application {
   @Override
   public void start(Stage primaryStage) {
     primaryStage.setTitle("Distorio Image Editor");
-    MainWindow mainWindow = new MainWindow(primaryStage);
+    new MainWindow(primaryStage);
     primaryStage.show();
   }
 

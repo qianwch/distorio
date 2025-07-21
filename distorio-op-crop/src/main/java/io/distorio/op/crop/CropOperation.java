@@ -1,6 +1,7 @@
 package io.distorio.op.crop;
 
 import io.distorio.operation.api.ImageOperation;
+import java.lang.reflect.Method;
 import java.util.Optional;
 
 public class CropOperation implements ImageOperation {
@@ -49,11 +50,11 @@ public class CropOperation implements ImageOperation {
   public void apply(OperationContext context) {
     // Print selection bounds
     try {
-      java.lang.reflect.Method getSelectionX = context.getClass().getMethod("getSelectionX");
-      java.lang.reflect.Method getSelectionY = context.getClass().getMethod("getSelectionY");
-      java.lang.reflect.Method getSelectionWidth = context.getClass()
+      Method getSelectionX = context.getClass().getMethod("getSelectionX");
+      Method getSelectionY = context.getClass().getMethod("getSelectionY");
+      Method getSelectionWidth = context.getClass()
         .getMethod("getSelectionWidth");
-      java.lang.reflect.Method getSelectionHeight = context.getClass()
+      Method getSelectionHeight = context.getClass()
         .getMethod("getSelectionHeight");
       double x = (double) getSelectionX.invoke(context);
       double y = (double) getSelectionY.invoke(context);
