@@ -55,13 +55,8 @@ public class MainWindow {
 
   private final BorderPane root = new BorderPane();
   private final MenuBar menuBar = new MenuBar();
-  private final ToolBar toolBar = new ToolBar();
-  private final VBox toolbox = new VBox();
-  private final HBox statusBar = new HBox();
   private final ScrollPane scrollPane = new ScrollPane();
   private final StackPane mainArea = new StackPane();
-  private final List<Button> toolboxButtons = new ArrayList<>();
-  private final List<ImageOperation> toolboxOperations = new ArrayList<>();
   private final OperationHistory operationHistory = new OperationHistory();
   private final AppImageContext imageContext = new AppImageContext();
   private final ImageView imageView = new ImageView();
@@ -79,6 +74,10 @@ public class MainWindow {
   private boolean isSelecting = false;
   private boolean isCentering = false;
   private boolean dirty = false;
+  private final StatusBarController statusBarController = new StatusBarController();
+  private final ToolboxController toolboxController = new ToolboxController();
+  private final ToolbarController toolbarController;
+
   public MainWindow(Stage stage) {
     this.stage = stage;
     // Detect Mac OS for shortcut key
@@ -174,56 +173,40 @@ public class MainWindow {
     pasteItem.setOnAction((ActionEvent e) -> handlePaste());
     // handItem is now handled in buildToolsMenu()
 
-    // Toolbar with icons
-    List<Button> toolbarButtons = new ArrayList<>();
-    Button openBtn = createToolbarButton("toolbar.open", "META-INF/icons/file_open.svg");
-    openBtn.setOnAction(e -> handleOpen(stage));
-    openBtn.setTooltip(new Tooltip("Open (" + modSymbol + "O)"));
-    Button closeBtn = createToolbarButton("toolbar.close", "META-INF/icons/file_close.svg");
-    closeBtn.setOnAction(e -> handleClose());
-    closeBtn.setTooltip(new Tooltip("Close (" + modSymbol + "W)"));
-    Button saveBtn = createToolbarButton("toolbar.save", "META-INF/icons/file_save.svg");
-    saveBtn.setOnAction(e -> handleSave());
-    saveBtn.setTooltip(new Tooltip("Save (" + modSymbol + "S)"));
-    Button saveAsBtn = createToolbarButton("toolbar.saveas", "META-INF/icons/file_save_as.svg");
-    saveAsBtn.setOnAction(e -> handleSaveAs());
-    saveAsBtn.setTooltip(new Tooltip("Save As (" + modSymbol + "⇧S)"));
-    Button copyBtn = createToolbarButton("toolbar.copy", "META-INF/icons/copy.svg");
-    copyBtn.setOnAction(e -> handleCopy());
-    copyBtn.setTooltip(new Tooltip("Copy (" + modSymbol + "C)"));
-    Button pasteBtn = createToolbarButton("toolbar.paste", "META-INF/icons/paste.svg");
-    pasteBtn.setOnAction(e -> handlePaste());
-    pasteBtn.setTooltip(new Tooltip("Paste (" + modSymbol + "V)"));
-    // Undo/Redo buttons
-    Button undoBtn = createToolbarButton("toolbar.undo", "META-INF/icons/undo.svg");
-    undoBtn.setOnAction(e -> handleUndo());
-    undoBtn.setTooltip(new Tooltip("Undo (" + modSymbol + "Z)"));
-    Button redoBtn = createToolbarButton("toolbar.redo", "META-INF/icons/redo.svg");
-    redoBtn.setOnAction(e -> handleRedo());
-    redoBtn.setTooltip(new Tooltip("Redo (" + modSymbol + "Y)"));
-    toolbarButtons.add(openBtn);
-    toolbarButtons.add(closeBtn);
-    toolbarButtons.add(saveBtn);
-    toolbarButtons.add(saveAsBtn);
-    toolbarButtons.add(copyBtn);
-    toolbarButtons.add(pasteBtn);
-    toolbarButtons.add(undoBtn);
-    toolbarButtons.add(redoBtn);
-    toolBar.getItems().setAll(toolbarButtons);
+    // Toolbar
+    toolbarController = new ToolbarController(iconMode, modSymbol);
+    toolbarController.setButtonAction("open", e -> handleOpen(stage));
+    toolbarController.setButtonAction("close", e -> handleClose());
+    toolbarController.setButtonAction("save", e -> handleSave());
+    toolbarController.setButtonAction("saveas", e -> handleSaveAs());
+    toolbarController.setButtonAction("copy", e -> handleCopy());
+    toolbarController.setButtonAction("paste", e -> handlePaste());
+    toolbarController.setButtonAction("undo", e -> handleUndo());
+    toolbarController.setButtonAction("redo", e -> handleRedo());
 
     // Toolbox (dynamic)
-    buildToolbox();
-    toolbox.getStyleClass().add("toolbox");
-    toolbox.setAlignment(Pos.TOP_CENTER); // Align buttons to top
-    toolbox.setPrefWidth(100); // Make toolbox narrower
+    toolboxController.buildToolbox();
+    // Set action handlers for operation buttons
+    List<Button> opButtons = toolboxController.getToolboxButtons();
+    List<ImageOperation> opList = toolboxController.getToolboxOperations();
+    for (int i = 0; i < opButtons.size(); i++) {
+        Button btn = opButtons.get(i);
+        ImageOperation op = opList.get(i);
+        btn.setOnAction(e -> handleOperation(op));
+    }
+    // Set action handler for hand button
+    toolboxController.getHandButton().setOnAction(e -> setHandMode(!handMode));
+    toolboxController.getToolbox().getStyleClass().add("toolbox");
+    toolboxController.getToolbox().setAlignment(Pos.TOP_CENTER); // Align buttons to top
+    toolboxController.getToolbox().setPrefWidth(100); // Make toolbox narrower
 
     // Status bar (placeholder)
-    statusBar.getChildren().clear();
-    statusBar.getChildren().add(new Label(I18n.get("status.zoom")));
-    statusBar.getChildren().add(zoomSlider);
-    statusBar.getChildren().add(zoomPercentLabel);
-    statusBar.setSpacing(8);
-    statusBar.getStyleClass().add("status-bar");
+    statusBarController.getStatusBar().getChildren().clear();
+    statusBarController.getStatusBar().getChildren().add(new Label(I18n.get("status.zoom")));
+    statusBarController.getStatusBar().getChildren().add(zoomSlider);
+    statusBarController.getStatusBar().getChildren().add(zoomPercentLabel);
+    statusBarController.getStatusBar().setSpacing(8);
+    statusBarController.getStatusBar().getStyleClass().add("status-bar");
     zoomSlider.setValue(100);
     zoomSlider.valueProperty().addListener((obs, oldV, newV) -> {
       setZoom(newV.doubleValue() / 100.0);
@@ -354,10 +337,10 @@ public class MainWindow {
     });
 
     // Layout
-    VBox top = new VBox(menuBar, toolBar);
+    VBox top = new VBox(menuBar, toolbarController.getToolBar());
     root.setTop(top);
-    root.setLeft(toolbox);
-    root.setBottom(statusBar);
+    root.setLeft(toolboxController.getToolbox());
+    root.setBottom(statusBarController.getStatusBar());
     root.setCenter(mainArea);
 
     // Scene
@@ -429,23 +412,11 @@ public class MainWindow {
     });
   }
 
-  private Button createToolbarButton(String i18nKey, String iconName) {
-    Button btn;
-    if (iconMode == IconMode.ICON_ONLY) {
-      btn = new Button(null, IconUtil.icon(iconName, 20));
-      btn.getStyleClass().add("toolbar-button-icon-only");
-    } else {
-      btn = new Button(I18n.get(i18nKey), IconUtil.icon(iconName, 20));
-      btn.getStyleClass().add("toolbar-button");
-    }
-    return btn;
-  }
-
   private void setIconMode(IconMode mode) {
     this.iconMode = mode;
     // Update toolbar and toolbox using dynamic methods
-    rebuildToolbar();
-    buildToolbox();
+    toolbarController.setIconMode(mode);
+    toolboxController.buildToolbox();
   }
 
   private void setTheme(ThemeManager.Theme theme) {
@@ -471,17 +442,17 @@ public class MainWindow {
     rebuildMenuBar();
 
     // Rebuild toolbar
-    rebuildToolbar();
+    toolbarController.rebuildToolbar();
 
     // Rebuild toolbox
-    buildToolbox();
+    toolboxController.buildToolbox();
 
     // Update status bar
-    statusBar.getChildren().clear();
-    statusBar.getChildren().add(new Label(I18n.get("status.zoom")));
-    statusBar.getChildren().add(zoomSlider);
-    statusBar.getChildren().add(zoomPercentLabel);
-    statusBar.setSpacing(8);
+    statusBarController.getStatusBar().getChildren().clear();
+    statusBarController.getStatusBar().getChildren().add(new Label(I18n.get("status.zoom")));
+    statusBarController.getStatusBar().getChildren().add(zoomSlider);
+    statusBarController.getStatusBar().getChildren().add(zoomPercentLabel);
+    statusBarController.getStatusBar().setSpacing(8);
     updateZoomPercentLabel();
   }
 
@@ -587,27 +558,7 @@ public class MainWindow {
    * Rebuilds the toolbar with current language and icon mode
    */
   private void rebuildToolbar() {
-    toolBar.getItems().clear();
-    List<Button> toolbarButtons = new ArrayList<>();
-
-    Button openBtn = createToolbarButton("toolbar.open", "META-INF/icons/file_open.svg");
-    openBtn.setOnAction(e -> handleOpen(null)); // TODO: pass stage reference
-    toolbarButtons.add(openBtn);
-    toolbarButtons.add(createToolbarButton("toolbar.close", "META-INF/icons/file_close.svg"));
-    toolbarButtons.add(createToolbarButton("toolbar.save", "META-INF/icons/save.svg"));
-    toolbarButtons.add(createToolbarButton("toolbar.saveas", "META-INF/icons/save_as.svg"));
-    toolbarButtons.add(createToolbarButton("toolbar.copy", "META-INF/icons/copy.svg"));
-    toolbarButtons.add(createToolbarButton("toolbar.paste", "META-INF/icons/paste.svg"));
-
-    // Undo/Redo buttons
-    Button undoBtn = createToolbarButton("toolbar.undo", "META-INF/icons/undo.svg");
-    Button redoBtn = createToolbarButton("toolbar.redo", "META-INF/icons/redo.svg");
-    undoBtn.setOnAction(e -> handleUndo());
-    redoBtn.setOnAction(e -> handleRedo());
-    toolbarButtons.add(undoBtn);
-    toolbarButtons.add(redoBtn);
-
-    toolBar.getItems().setAll(toolbarButtons);
+    // This method is no longer needed as toolbar buttons are managed by ToolbarController
   }
 
   private void handleOperation(ImageOperation op) {
@@ -675,15 +626,7 @@ public class MainWindow {
     }
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Open Image");
-    // Dynamically get supported image file types from ImageIO
-    String[] suffixes = ImageIO.getReaderFileSuffixes();
-    List<String> patterns = new ArrayList<>();
-    for (String ext : suffixes) {
-      patterns.add("*." + ext.toLowerCase());
-    }
-    fileChooser.getExtensionFilters().add(
-        new FileChooser.ExtensionFilter("Image Files", patterns)
-    );
+    fileChooser.getExtensionFilters().addAll(FileService.getImageExtensionFilters());
     File file = fileChooser.showOpenDialog(stage);
     if (file != null) {
       try {
@@ -981,41 +924,6 @@ public class MainWindow {
     return toolsMenu;
   }
 
-  /**
-   * Builds the toolbox dynamically from registered operations
-   */
-  private void buildToolbox() {
-    toolboxButtons.clear();
-    toolboxOperations.clear();
-    toolbox.getChildren().clear();
-    toolbox.setAlignment(Pos.TOP_CENTER); // Align buttons to top
-    toolbox.setPrefWidth(100); // Make toolbox narrower
-
-    // Add hand button (special case - not an operation)
-    if (iconMode == IconMode.ICON_ONLY) {
-      handButton = new Button(null, IconUtil.icon("META-INF/icons/hand.svg", 20));
-      handButton.getStyleClass().add("toolbox-button-icon-only");
-    } else {
-      handButton = new Button(I18n.get("toolbox.hand"),
-          IconUtil.icon("META-INF/icons/hand.svg", 20));
-      handButton.getStyleClass().add("toolbox-button");
-    }
-    handButton.setOnAction(e -> setHandMode(!handMode));
-    toolbox.getChildren().add(handButton);
-
-    // Add operation buttons with provider classloader support
-    List<OperationRegistry.OperationWithProvider> operationsWithProviders = OperationRegistry.loadAllOperationsWithProviders();
-    for (OperationRegistry.OperationWithProvider opWithProvider : operationsWithProviders) {
-      Button btn = OperationButtonFactory.createButton(opWithProvider, iconMode);
-      toolboxButtons.add(btn);
-      toolboxOperations.add(opWithProvider.getOperation());
-      btn.setOnAction(e -> handleOperation(opWithProvider.getOperation()));
-      toolbox.getChildren().add(btn);
-    }
-
-    toolbox.setSpacing(4);
-  }
-
   private void handleClose() {
     if (!confirmDiscardUnsavedChanges()) {
       return;
@@ -1089,20 +997,8 @@ public class MainWindow {
       handleSaveAs();
       return;
     }
-    String ext = "png";
-    String fileName = file.getName().toLowerCase();
-    if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
-      ext = "jpg";
-    } else if (fileName.endsWith(".bmp")) {
-      ext = "bmp";
-    }
     try {
-      if ("jpg".equals(ext)) {
-        BufferedImage rgbImage = toBufferedImageNoAlpha(img);
-        ImageIO.write(rgbImage, ext, file);
-      } else {
-        ImageIO.write(SwingFXUtils.fromFXImage(img, null), ext, file);
-      }
+      FileService.saveImageToFile(img, file);
       dirty = false;
       updateWindowTitle();
     } catch (Exception ex) {
@@ -1170,12 +1066,7 @@ public class MainWindow {
         file = new File(file.getParent(), file.getName() + "." + ext);
       }
       try {
-        if ("jpg".equals(ext)) {
-          BufferedImage rgbImage = toBufferedImageNoAlpha(img);
-          ImageIO.write(rgbImage, ext, file);
-        } else {
-          ImageIO.write(SwingFXUtils.fromFXImage(img, null), ext, file);
-        }
+        FileService.saveImageToFile(img, file);
         imageContext.setImageFile(file);
         updateWindowTitle();
         dirty = false;
@@ -1207,22 +1098,7 @@ public class MainWindow {
 
   // Helper method for drag-and-drop file type check
   private boolean isImageFile(File file) {
-    String name = file.getName().toLowerCase();
-    return name.endsWith(".png") || name.endsWith(".jpg") || name.endsWith(".jpeg")
-        || name.endsWith(".bmp") || name.endsWith(".gif") || name.endsWith(".svg");
-  }
-
-  // Helper to convert JavaFX Image to TYPE_INT_RGB BufferedImage (removes alpha)
-  private static BufferedImage toBufferedImageNoAlpha(Image img) {
-    BufferedImage src = SwingFXUtils.fromFXImage(img, null);
-    BufferedImage rgbImage = new BufferedImage(
-        src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
-    Graphics2D g = rgbImage.createGraphics();
-    g.setColor(Color.WHITE); // Fill with white background
-    g.fillRect(0, 0, src.getWidth(), src.getHeight());
-    g.drawImage(src, 0, 0, null);
-    g.dispose();
-    return rgbImage;
+    return FileService.isImageFile(file);
   }
 
   public enum IconMode {ICON_ONLY, ICON_TEXT}
