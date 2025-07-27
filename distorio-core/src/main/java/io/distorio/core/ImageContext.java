@@ -1,10 +1,10 @@
-package io.distorio.app;
+package io.distorio.core;
 
 import io.distorio.operation.api.ImageOperation;
 import java.io.File;
 import javafx.scene.image.Image;
 
-public class AppImageContext implements ImageOperation.OperationContext {
+public class ImageContext implements ImageOperation.OperationContext {
 
   private Image image;
   private double selectionX, selectionY, selectionWidth, selectionHeight;
@@ -52,4 +52,4 @@ public class AppImageContext implements ImageOperation.OperationContext {
   public void setImageFile(File file) {
     this.imageFile = file;
   }
-}
+} 

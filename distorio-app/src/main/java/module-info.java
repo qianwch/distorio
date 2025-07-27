@@ -5,6 +5,7 @@ module io.distorio.app {
   requires java.prefs;
 
   requires transitive io.distorio.operation.api;
+  requires io.distorio.core;
   requires io.distorio.ui.common;
   requires java.desktop;
   requires javafx.swing;

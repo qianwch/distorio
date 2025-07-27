@@ -1,10 +1,10 @@
-package io.distorio.app;
+package io.distorio.core;
 
 import java.util.prefs.Preferences;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 
-public class ThemeManager {
+public class ThemeService {
 
   public enum Theme {
     LIGHT, DARK, SYSTEM
@@ -12,7 +12,7 @@ public class ThemeManager {
 
   private static Theme currentTheme = Theme.SYSTEM;
   private static Scene currentScene;
-  private static final Preferences prefs = Preferences.userNodeForPackage(ThemeManager.class);
+  private static final Preferences prefs = Preferences.userNodeForPackage(ThemeService.class);
   private static final String THEME_PREF_KEY = "theme";
 
   static {
@@ -84,7 +84,7 @@ public class ThemeManager {
     Platform.runLater(() -> {
       String themeFile = isDarkMode() ? "/style-dark.css" : "/style.css";
       currentScene.getStylesheets().clear();
-      currentScene.getStylesheets().add(ThemeManager.class.getResource(themeFile).toExternalForm());
+      currentScene.getStylesheets().add(ThemeService.class.getResource(themeFile).toExternalForm());
     });
   }
-}
+} 

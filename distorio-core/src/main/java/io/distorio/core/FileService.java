@@ -1,4 +1,4 @@
-package io.distorio.app;
+package io.distorio.core;
 
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
@@ -23,14 +23,7 @@ public class FileService {
     }
 
     public static boolean isImageFile(File file) {
-        String name = file.getName().toLowerCase();
-        String[] suffixes = ImageIO.getReaderFileSuffixes();
-        for (String ext : suffixes) {
-            if (name.endsWith("." + ext.toLowerCase())) {
-                return true;
-            }
-        }
-        return false;
+        return ValidationService.isValidImageFile(file);
     }
 
     public static boolean saveImageToFile(Image img, File file) throws Exception {
@@ -51,28 +44,44 @@ public class FileService {
     }
 
     public static BufferedImage toBufferedImageNoAlpha(Image img) {
-        BufferedImage src = SwingFXUtils.fromFXImage(img, null);
-        BufferedImage rgbImage = new BufferedImage(
-                src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = rgbImage.createGraphics();
-        g.setColor(Color.WHITE);
-        g.fillRect(0, 0, src.getWidth(), src.getHeight());
-        g.drawImage(src, 0, 0, null);
-        g.dispose();
-        return rgbImage;
+        return ImageUtils.toBufferedImageNoAlpha(img);
     }
 
     public static List<FileChooser.ExtensionFilter> getImageExtensionFilters() {
         List<FileChooser.ExtensionFilter> filters = new ArrayList<>();
-        Set<String> added = new java.util.HashSet<>();
-        String[] suffixes = ImageIO.getWriterFileSuffixes();
-        for (String ext : suffixes) {
-            String lower = ext.toLowerCase();
-            if (!added.contains(lower)) {
-                filters.add(new FileChooser.ExtensionFilter((lower.toUpperCase() + " (*." + lower + ")"), "*." + lower));
-                added.add(lower);
-            }
+        
+        // Create a single filter for all image formats that ImageIO can read
+        String[] readerSuffixes = ImageIO.getReaderFileSuffixes();
+        List<String> extensions = new ArrayList<>();
+        for (String ext : readerSuffixes) {
+            extensions.add("*." + ext.toLowerCase());
         }
+        
+        // Create a single filter with all readable image formats
+        String description = "All Image Files (" + String.join(", ", extensions) + ")";
+        filters.add(new FileChooser.ExtensionFilter(description, extensions.toArray(new String[0])));
+        
         return filters;
     }
+
+    public static List<FileChooser.ExtensionFilter> getWriteFileFilters() {
+        // List common types first
+        List<FileChooser.ExtensionFilter> filters = new ArrayList<>();
+        filters.add(new FileChooser.ExtensionFilter("JPEG (*.jpg, *.jpeg)", "*.jpg", "*.jpeg"));
+        filters.add(new FileChooser.ExtensionFilter("PNG (*.png)", "*.png"));
+        filters.add(new FileChooser.ExtensionFilter("BMP (*.bmp)", "*.bmp"));
+        filters.add(new FileChooser.ExtensionFilter("GIF (*.gif)", "*.gif"));
+    
+        // Add less common types from ImageIO, skipping those already added
+        Set<String> commonExts = Set.of("png", "jpg", "jpeg", "bmp", "gif");
+        String[] suffixes = ImageIO.getWriterFileSuffixes();
+        for (String ext : suffixes) {
+          String lower = ext.toLowerCase();
+          if (!commonExts.contains(lower)) {
+            filters.add(new FileChooser.ExtensionFilter((lower.toUpperCase() + " (*." + lower + ")"), "*." + lower));
+          }
+        }
+        return filters;
+      }
+    
 } 

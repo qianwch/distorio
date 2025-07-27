@@ -1,9 +1,9 @@
-package io.distorio.app;
+package io.distorio.core;
 
 import io.distorio.operation.api.ImageOperation;
 import java.util.Stack;
 
-public class OperationHistory {
+public class HistoryService {
 
   private final Stack<ImageOperation> undoStack = new Stack<>();
   private final Stack<ImageOperation> redoStack = new Stack<>();
@@ -43,4 +43,4 @@ public class OperationHistory {
     undoStack.clear();
     redoStack.clear();
   }
-}
+} 

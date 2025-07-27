@@ -1,5 +1,11 @@
 package io.distorio.app;
 
+import io.distorio.core.FileService;
+import io.distorio.core.ThemeService;
+import io.distorio.core.HistoryService;
+import io.distorio.core.ImageContext;
+import io.distorio.core.ConfigService;
+import io.distorio.core.LoggingService;
 import io.distorio.operation.api.ImageOperation;
 import io.distorio.operation.api.OperationRegistry;
 import io.distorio.ui.common.I18n;
@@ -57,8 +63,8 @@ public class MainWindow {
   private final MenuBar menuBar = new MenuBar();
   private final ScrollPane scrollPane = new ScrollPane();
   private final StackPane mainArea = new StackPane();
-  private final OperationHistory operationHistory = new OperationHistory();
-  private final AppImageContext imageContext = new AppImageContext();
+  private final HistoryService operationHistory = new HistoryService();
+  private final ImageContext imageContext = new ImageContext();
   private final ImageView imageView = new ImageView();
   private final Pane overlayPane = new Pane();
   private final Slider zoomSlider = new Slider(5, 600, 100);
@@ -135,9 +141,9 @@ public class MainWindow {
     systemTheme.setToggleGroup(themeGroup);
     systemTheme.setSelected(true);
     themeMenu.getItems().addAll(lightTheme, darkTheme, systemTheme);
-    lightTheme.setOnAction(e -> setTheme(ThemeManager.Theme.LIGHT));
-    darkTheme.setOnAction(e -> setTheme(ThemeManager.Theme.DARK));
-    systemTheme.setOnAction(e -> setTheme(ThemeManager.Theme.SYSTEM));
+    lightTheme.setOnAction(e -> setTheme(ThemeService.Theme.LIGHT));
+    darkTheme.setOnAction(e -> setTheme(ThemeService.Theme.DARK));
+    systemTheme.setOnAction(e -> setTheme(ThemeService.Theme.SYSTEM));
 
     // Language switching
     Menu langMenu = new Menu("Language");
@@ -376,19 +382,27 @@ public class MainWindow {
                 success = true;
               } else {
                 // handle error: not a supported image
-                Alert alert = new Alert(AlertType.ERROR);
-                alert.setTitle("Open Image Error");
-                alert.setHeaderText("Unsupported Image Format");
-                alert.setContentText("The dropped file could not be opened as an image.");
-                alert.showAndWait();
+                try {
+                  Alert alert = new Alert(AlertType.ERROR);
+                  alert.setTitle("Open Image Error");
+                  alert.setHeaderText("Unsupported Image Format");
+                  alert.setContentText("The dropped file could not be opened as an image.");
+                  alert.showAndWait();
+                } catch (Exception e) {
+                  System.err.println("Warning: Could not show error dialog: " + e.getMessage());
+                }
               }
             } catch (Exception ex) {
               ex.printStackTrace();
-              Alert alert = new Alert(AlertType.ERROR);
-              alert.setTitle("Open Image Error");
-              alert.setHeaderText("Failed to open image");
-              alert.setContentText("An error occurred while opening the dropped image file.\n" + ex.getMessage());
-              alert.showAndWait();
+              try {
+                Alert alert = new Alert(AlertType.ERROR);
+                alert.setTitle("Open Image Error");
+                alert.setHeaderText("Failed to open image");
+                alert.setContentText("An error occurred while opening the dropped image file.\n" + ex.getMessage());
+                alert.showAndWait();
+              } catch (Exception e) {
+                System.err.println("Warning: Could not show error dialog: " + e.getMessage());
+              }
             }
             break;
           }
@@ -399,7 +413,7 @@ public class MainWindow {
     });
 
     // Initialize theme manager
-    ThemeManager.setScene(scene);
+    ThemeService.setScene(scene);
 
     // Set initial window title
     updateWindowTitle();
@@ -419,8 +433,8 @@ public class MainWindow {
     toolboxController.buildToolbox();
   }
 
-  private void setTheme(ThemeManager.Theme theme) {
-    ThemeManager.setTheme(theme);
+  private void setTheme(ThemeService.Theme theme) {
+    ThemeService.setTheme(theme);
   }
 
   private void setLanguage(String lang) {
@@ -508,18 +522,18 @@ public class MainWindow {
     lightTheme.setToggleGroup(themeGroup);
     darkTheme.setToggleGroup(themeGroup);
     systemTheme.setToggleGroup(themeGroup);
-    ThemeManager.Theme currentTheme = ThemeManager.getCurrentTheme();
-    if (currentTheme == ThemeManager.Theme.LIGHT) {
+    ThemeService.Theme currentTheme = ThemeService.getCurrentTheme();
+    if (currentTheme == ThemeService.Theme.LIGHT) {
       lightTheme.setSelected(true);
-    } else if (currentTheme == ThemeManager.Theme.DARK) {
+    } else if (currentTheme == ThemeService.Theme.DARK) {
       darkTheme.setSelected(true);
     } else {
       systemTheme.setSelected(true);
     }
     themeMenu.getItems().addAll(lightTheme, darkTheme, systemTheme);
-    lightTheme.setOnAction(e -> setTheme(ThemeManager.Theme.LIGHT));
-    darkTheme.setOnAction(e -> setTheme(ThemeManager.Theme.DARK));
-    systemTheme.setOnAction(e -> setTheme(ThemeManager.Theme.SYSTEM));
+    lightTheme.setOnAction(e -> setTheme(ThemeService.Theme.LIGHT));
+    darkTheme.setOnAction(e -> setTheme(ThemeService.Theme.DARK));
+    systemTheme.setOnAction(e -> setTheme(ThemeService.Theme.SYSTEM));
 
     // Language switching
     Menu langMenu = new Menu("Language");
@@ -554,16 +568,17 @@ public class MainWindow {
     redoItem.setOnAction((ActionEvent e) -> handleRedo());
   }
 
-  /**
-   * Rebuilds the toolbar with current language and icon mode
-   */
-  private void rebuildToolbar() {
-    // This method is no longer needed as toolbar buttons are managed by ToolbarController
-  }
 
   private void handleOperation(ImageOperation op) {
     // TODO: implement operation preparation, preview, apply, and undo/redo logic
     System.out.println("Operation invoked: " + op.getMetadata().getDisplayName());
+    
+    // Check if there's an image before applying operation
+    if (imageContext.getImage() == null) {
+      System.out.println("No image loaded, operation skipped: " + op.getMetadata().getDisplayName());
+      return;
+    }
+    
     boolean ready = op.prepare(imageContext);
     if (ready) {
       op.preview(imageContext); // For now, just call preview
@@ -643,19 +658,27 @@ public class MainWindow {
           updateWindowTitle();
         } else {
           // handle error: not a supported image
-          Alert alert = new Alert(AlertType.ERROR);
-          alert.setTitle("Open Image Error");
-          alert.setHeaderText("Unsupported Image Format");
-          alert.setContentText("The selected file could not be opened as an image.");
-          alert.showAndWait();
+          try {
+            Alert alert = new Alert(AlertType.ERROR);
+            alert.setTitle("Open Image Error");
+            alert.setHeaderText("Unsupported Image Format");
+            alert.setContentText("The selected file could not be opened as an image.");
+            alert.showAndWait();
+          } catch (Exception e) {
+            System.err.println("Warning: Could not show error dialog: " + e.getMessage());
+          }
         }
       } catch (Exception ex) {
         ex.printStackTrace();
-        Alert alert = new Alert(AlertType.ERROR);
-        alert.setTitle("Open Image Error");
-        alert.setHeaderText("Failed to open image");
-        alert.setContentText("An error occurred while opening the image file.\n" + ex.getMessage());
-        alert.showAndWait();
+        try {
+          Alert alert = new Alert(AlertType.ERROR);
+          alert.setTitle("Open Image Error");
+          alert.setHeaderText("Failed to open image");
+          alert.setContentText("An error occurred while opening the image file.\n" + ex.getMessage());
+          alert.showAndWait();
+        } catch (Exception e) {
+          System.err.println("Warning: Could not show error dialog: " + e.getMessage());
+        }
       }
     }
   }
@@ -1014,22 +1037,7 @@ public class MainWindow {
     FileChooser fileChooser = new FileChooser();
     fileChooser.setTitle("Save Image As");
 
-    // List common types first
-    List<FileChooser.ExtensionFilter> filters = new ArrayList<>();
-    filters.add(new FileChooser.ExtensionFilter("JPEG (*.jpg, *.jpeg)", "*.jpg", "*.jpeg"));
-    filters.add(new FileChooser.ExtensionFilter("PNG (*.png)", "*.png"));
-    filters.add(new FileChooser.ExtensionFilter("BMP (*.bmp)", "*.bmp"));
-    filters.add(new FileChooser.ExtensionFilter("GIF (*.gif)", "*.gif"));
-
-    // Add less common types from ImageIO, skipping those already added
-    Set<String> commonExts = Set.of("png", "jpg", "jpeg", "bmp", "gif");
-    String[] suffixes = ImageIO.getWriterFileSuffixes();
-    for (String ext : suffixes) {
-      String lower = ext.toLowerCase();
-      if (!commonExts.contains(lower)) {
-        filters.add(new FileChooser.ExtensionFilter((lower.toUpperCase() + " (*." + lower + ")"), "*." + lower));
-      }
-    }
+    List<FileChooser.ExtensionFilter> filters = FileService.getWriteFileFilters();
     fileChooser.getExtensionFilters().addAll(filters);
     fileChooser.setSelectedExtensionFilter(filters.get(0)); // Default to PNG
 
@@ -1079,6 +1087,7 @@ public class MainWindow {
     }
     return false; // User cancelled the save dialog
   }
+
 
   private void updateWindowTitle() {
     String baseTitle = "Distorio";
