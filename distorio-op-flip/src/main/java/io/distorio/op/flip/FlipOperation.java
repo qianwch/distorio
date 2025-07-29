@@ -11,6 +11,7 @@ public class FlipOperation implements ImageOperation {
 
   public enum Direction { LEFT, RIGHT }
   private final Direction direction;
+  private Image originalImage; // Store original image for undo
 
   public FlipOperation(Direction direction) {
     this.direction = direction;
@@ -62,6 +63,10 @@ public class FlipOperation implements ImageOperation {
       java.lang.reflect.Method setImage = context.getClass().getMethod("setImage", Image.class);
       Image src = (Image) getImage.invoke(context);
       if (src == null) return;
+      
+      // Store original image for undo
+      originalImage = src;
+      
       int width = (int) src.getWidth();
       int height = (int) src.getHeight();
       PixelReader reader = src.getPixelReader();
@@ -90,11 +95,49 @@ public class FlipOperation implements ImageOperation {
 
   @Override
   public void undo(OperationContext context) {
-    System.out.println("Undo flip operation: " + (direction == Direction.LEFT ? "Left" : "Right"));
+    try {
+      java.lang.reflect.Method setImage = context.getClass().getMethod("setImage", Image.class);
+      if (originalImage != null) {
+        setImage.invoke(context, originalImage);
+        System.out.println("Undo flip operation: " + (direction == Direction.LEFT ? "Left" : "Right"));
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
   public void redo(OperationContext context) {
-    System.out.println("Redo flip operation: " + (direction == Direction.LEFT ? "Left" : "Right"));
+    try {
+      java.lang.reflect.Method getImage = context.getClass().getMethod("getImage");
+      java.lang.reflect.Method setImage = context.getClass().getMethod("setImage", Image.class);
+      Image src = (Image) getImage.invoke(context);
+      if (src == null) return;
+      
+      int width = (int) src.getWidth();
+      int height = (int) src.getHeight();
+      PixelReader reader = src.getPixelReader();
+      WritableImage rotated = new WritableImage(height, width); // Note swapped dimensions
+      PixelWriter writer = rotated.getPixelWriter();
+      if (direction == Direction.LEFT) {
+        // 90° counterclockwise: (x, y) -> (y, width-1-x)
+        for (int y = 0; y < height; y++) {
+          for (int x = 0; x < width; x++) {
+            writer.setArgb(y, width - 1 - x, reader.getArgb(x, y));
+          }
+        }
+      } else {
+        // 90° clockwise: (x, y) -> (height-1-y, x)
+        for (int y = 0; y < height; y++) {
+          for (int x = 0; x < width; x++) {
+            writer.setArgb(height - 1 - y, x, reader.getArgb(x, y));
+          }
+        }
+      }
+      setImage.invoke(context, rotated);
+      System.out.println("Redo flip operation: " + (direction == Direction.LEFT ? "Left" : "Right"));
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 }

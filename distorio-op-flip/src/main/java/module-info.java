@@ -4,6 +4,8 @@ module io.distorio.op.flip {
   requires javafx.graphics;
   requires javafx.base;
 
+  exports io.distorio.op.flip;
+
   provides io.distorio.operation.api.ImageOperationProvider
     with io.distorio.op.flip.FlipLeftOperationProvider,
     io.distorio.op.flip.FlipRightOperationProvider;

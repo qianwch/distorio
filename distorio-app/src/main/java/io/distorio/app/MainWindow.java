@@ -579,16 +579,58 @@ public class MainWindow {
       return;
     }
     
-    boolean ready = op.prepare(imageContext);
+    // Create a new operation instance to ensure each operation has its own state
+    ImageOperation newOp = createNewOperationInstance(op);
+    
+    boolean ready = newOp.prepare(imageContext);
     if (ready) {
-      op.preview(imageContext); // For now, just call preview
-      op.apply(imageContext);
-      operationHistory.push(op);
+      newOp.preview(imageContext); // For now, just call preview
+      newOp.apply(imageContext);
+      operationHistory.push(newOp);
       updateImageView(); // Update display after operation
       dirty = true;
       updateWindowTitle();
     } else {
       // TODO: show preparation UI (e.g., selection, drag handles)
+    }
+  }
+
+  /**
+   * Creates a new instance of the given operation to ensure each operation has its own state
+   */
+  private ImageOperation createNewOperationInstance(ImageOperation originalOp) {
+    // For now, we'll need to handle each operation type specifically
+    // This is a temporary solution - ideally we'd have a factory or cloning mechanism
+    String opId = originalOp.getMetadata().getId();
+    
+    try {
+      switch (opId) {
+        case "flip_left":
+          Class<?> flipLeftClass = Class.forName("io.distorio.op.flip.FlipOperation");
+          Class<?> directionClass = Class.forName("io.distorio.op.flip.FlipOperation$Direction");
+          Object leftDirection = Enum.valueOf((Class<Enum>) directionClass, "LEFT");
+          return (ImageOperation) flipLeftClass.getConstructor(directionClass).newInstance(leftDirection);
+        case "flip_right":
+          Class<?> flipRightClass = Class.forName("io.distorio.op.flip.FlipOperation");
+          Class<?> directionClass2 = Class.forName("io.distorio.op.flip.FlipOperation$Direction");
+          Object rightDirection = Enum.valueOf((Class<Enum>) directionClass2, "RIGHT");
+          return (ImageOperation) flipRightClass.getConstructor(directionClass2).newInstance(rightDirection);
+        case "crop":
+          Class<?> cropClass = Class.forName("io.distorio.op.crop.CropOperation");
+          return (ImageOperation) cropClass.getConstructor().newInstance();
+        case "transform":
+          Class<?> transformClass = Class.forName("io.distorio.op.transform.TransformOperation");
+          return (ImageOperation) transformClass.getConstructor().newInstance();
+        case "perspective_crop":
+          Class<?> perspectiveCropClass = Class.forName("io.distorio.op.perspective_crop.PerspectiveCropOperation");
+          return (ImageOperation) perspectiveCropClass.getConstructor().newInstance();
+        default:
+          // Fallback: return the original operation (this might cause issues with state)
+          return originalOp;
+      }
+    } catch (Exception e) {
+      System.err.println("Error creating new operation instance: " + e.getMessage());
+      return originalOp;
     }
   }
 
