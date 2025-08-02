@@ -101,7 +101,7 @@ public class MainWindow {
     saveItem.setAccelerator(KeyCombination.keyCombination(mod + "+S"));
     MenuItem saveAsItem = new MenuItem(I18n.get("toolbar.saveas"));
     saveAsItem.setAccelerator(KeyCombination.keyCombination(mod + "+Shift+S"));
-    MenuItem exitItem = new MenuItem("Exit");
+    MenuItem exitItem = new MenuItem(I18n.get("menu.exit"));
     fileMenu.getItems().addAll(openItem, closeItem, new SeparatorMenuItem(), saveItem, saveAsItem,
         new SeparatorMenuItem(), exitItem);
 
@@ -120,8 +120,8 @@ public class MainWindow {
     Menu toolsMenu = buildToolsMenu();
 
     Menu viewMenu = new Menu(I18n.get("menu.view"));
-    RadioMenuItem iconOnly = new RadioMenuItem("Icon Only");
-    RadioMenuItem iconText = new RadioMenuItem("Icon + Text");
+    RadioMenuItem iconOnly = new RadioMenuItem(I18n.get("menu.icon_only"));
+    RadioMenuItem iconText = new RadioMenuItem(I18n.get("menu.icon_text"));
     ToggleGroup iconModeGroup = new ToggleGroup();
     iconOnly.setToggleGroup(iconModeGroup);
     iconText.setToggleGroup(iconModeGroup);
@@ -131,10 +131,10 @@ public class MainWindow {
     iconText.setOnAction(e -> setIconMode(IconMode.ICON_TEXT));
 
     // Theme switching
-    Menu themeMenu = new Menu("Theme");
-    RadioMenuItem lightTheme = new RadioMenuItem("Light");
-    RadioMenuItem darkTheme = new RadioMenuItem("Dark");
-    RadioMenuItem systemTheme = new RadioMenuItem("System");
+    Menu themeMenu = new Menu(I18n.get("menu.theme"));
+    RadioMenuItem lightTheme = new RadioMenuItem(I18n.get("menu.theme_light"));
+    RadioMenuItem darkTheme = new RadioMenuItem(I18n.get("menu.theme_dark"));
+    RadioMenuItem systemTheme = new RadioMenuItem(I18n.get("menu.theme_system"));
     ToggleGroup themeGroup = new ToggleGroup();
     lightTheme.setToggleGroup(themeGroup);
     darkTheme.setToggleGroup(themeGroup);
@@ -146,9 +146,9 @@ public class MainWindow {
     systemTheme.setOnAction(e -> setTheme(ThemeService.Theme.SYSTEM));
 
     // Language switching
-    Menu langMenu = new Menu("Language");
-    RadioMenuItem en = new RadioMenuItem("English");
-    RadioMenuItem zh = new RadioMenuItem("中文");
+    Menu langMenu = new Menu(I18n.get("menu.language"));
+    RadioMenuItem en = new RadioMenuItem(I18n.get("menu.language_english"));
+    RadioMenuItem zh = new RadioMenuItem(I18n.get("menu.language_chinese"));
     ToggleGroup langGroup = new ToggleGroup();
     en.setToggleGroup(langGroup);
     zh.setToggleGroup(langGroup);
@@ -162,7 +162,7 @@ public class MainWindow {
     viewMenu.getItems().add(langMenu);
 
     Menu helpMenu = new Menu(I18n.get("menu.help"));
-    MenuItem aboutItem = new MenuItem("About");
+    MenuItem aboutItem = new MenuItem(I18n.get("menu.about"));
     helpMenu.getItems().add(aboutItem);
 
     menuBar.getMenus().clear();
@@ -384,9 +384,9 @@ public class MainWindow {
                 // handle error: not a supported image
                 try {
                   Alert alert = new Alert(AlertType.ERROR);
-                  alert.setTitle("Open Image Error");
-                  alert.setHeaderText("Unsupported Image Format");
-                  alert.setContentText("The dropped file could not be opened as an image.");
+                  alert.setTitle(I18n.get("dialog.open_image_error"));
+                  alert.setHeaderText(I18n.get("dialog.unsupported_format"));
+                  alert.setContentText(I18n.get("dialog.dropped_file_error"));
                   alert.showAndWait();
                 } catch (Exception e) {
                   System.err.println("Warning: Could not show error dialog: " + e.getMessage());
@@ -396,9 +396,9 @@ public class MainWindow {
               ex.printStackTrace();
               try {
                 Alert alert = new Alert(AlertType.ERROR);
-                alert.setTitle("Open Image Error");
-                alert.setHeaderText("Failed to open image");
-                alert.setContentText("An error occurred while opening the dropped image file.\n" + ex.getMessage());
+                alert.setTitle(I18n.get("dialog.open_image_error"));
+                alert.setHeaderText(I18n.get("dialog.failed_to_open"));
+                alert.setContentText(I18n.get("dialog.dropped_file_failed") + "\n" + ex.getMessage());
                 alert.showAndWait();
               } catch (Exception e) {
                 System.err.println("Warning: Could not show error dialog: " + e.getMessage());
@@ -482,7 +482,7 @@ public class MainWindow {
     MenuItem closeItem = new MenuItem(I18n.get("toolbar.close"));
     MenuItem saveItem = new MenuItem(I18n.get("toolbar.save"));
     MenuItem saveAsItem = new MenuItem(I18n.get("toolbar.saveas"));
-    MenuItem exitItem = new MenuItem("Exit");
+    MenuItem exitItem = new MenuItem(I18n.get("menu.exit"));
     fileMenu.getItems().addAll(openItem, closeItem, new SeparatorMenuItem(), saveItem, saveAsItem,
         new SeparatorMenuItem(), exitItem);
 
@@ -499,8 +499,8 @@ public class MainWindow {
 
     // View menu
     Menu viewMenu = new Menu(I18n.get("menu.view"));
-    RadioMenuItem iconOnly = new RadioMenuItem("Icon Only");
-    RadioMenuItem iconText = new RadioMenuItem("Icon + Text");
+    RadioMenuItem iconOnly = new RadioMenuItem(I18n.get("menu.icon_only"));
+    RadioMenuItem iconText = new RadioMenuItem(I18n.get("menu.icon_text"));
     ToggleGroup iconModeGroup = new ToggleGroup();
     iconOnly.setToggleGroup(iconModeGroup);
     iconText.setToggleGroup(iconModeGroup);
@@ -514,10 +514,10 @@ public class MainWindow {
     iconText.setOnAction(e -> setIconMode(IconMode.ICON_TEXT));
 
     // Theme switching
-    Menu themeMenu = new Menu("Theme");
-    RadioMenuItem lightTheme = new RadioMenuItem("Light");
-    RadioMenuItem darkTheme = new RadioMenuItem("Dark");
-    RadioMenuItem systemTheme = new RadioMenuItem("System");
+    Menu themeMenu = new Menu(I18n.get("menu.theme"));
+    RadioMenuItem lightTheme = new RadioMenuItem(I18n.get("menu.theme_light"));
+    RadioMenuItem darkTheme = new RadioMenuItem(I18n.get("menu.theme_dark"));
+    RadioMenuItem systemTheme = new RadioMenuItem(I18n.get("menu.theme_system"));
     ToggleGroup themeGroup = new ToggleGroup();
     lightTheme.setToggleGroup(themeGroup);
     darkTheme.setToggleGroup(themeGroup);
@@ -536,9 +536,9 @@ public class MainWindow {
     systemTheme.setOnAction(e -> setTheme(ThemeService.Theme.SYSTEM));
 
     // Language switching
-    Menu langMenu = new Menu("Language");
-    RadioMenuItem en = new RadioMenuItem("English");
-    RadioMenuItem zh = new RadioMenuItem("中文");
+    Menu langMenu = new Menu(I18n.get("menu.language"));
+    RadioMenuItem en = new RadioMenuItem(I18n.get("menu.language_english"));
+    RadioMenuItem zh = new RadioMenuItem(I18n.get("menu.language_chinese"));
     ToggleGroup langGroup = new ToggleGroup();
     en.setToggleGroup(langGroup);
     zh.setToggleGroup(langGroup);
@@ -557,7 +557,7 @@ public class MainWindow {
 
     // Help menu
     Menu helpMenu = new Menu(I18n.get("menu.help"));
-    MenuItem aboutItem = new MenuItem("About");
+    MenuItem aboutItem = new MenuItem(I18n.get("menu.about"));
     helpMenu.getItems().add(aboutItem);
 
     menuBar.getMenus().addAll(fileMenu, editMenu, toolsMenu, viewMenu, helpMenu);
@@ -599,37 +599,16 @@ public class MainWindow {
    * Creates a new instance of the given operation to ensure each operation has its own state
    */
   private ImageOperation createNewOperationInstance(ImageOperation originalOp) {
-    // For now, we'll need to handle each operation type specifically
-    // This is a temporary solution - ideally we'd have a factory or cloning mechanism
     String opId = originalOp.getMetadata().getId();
     
-    try {
-      switch (opId) {
-        case "flip_left":
-          Class<?> flipLeftClass = Class.forName("io.distorio.op.flip.FlipOperation");
-          Class<?> directionClass = Class.forName("io.distorio.op.flip.FlipOperation$Direction");
-          Object leftDirection = Enum.valueOf((Class<Enum>) directionClass, "LEFT");
-          return (ImageOperation) flipLeftClass.getConstructor(directionClass).newInstance(leftDirection);
-        case "flip_right":
-          Class<?> flipRightClass = Class.forName("io.distorio.op.flip.FlipOperation");
-          Class<?> directionClass2 = Class.forName("io.distorio.op.flip.FlipOperation$Direction");
-          Object rightDirection = Enum.valueOf((Class<Enum>) directionClass2, "RIGHT");
-          return (ImageOperation) flipRightClass.getConstructor(directionClass2).newInstance(rightDirection);
-        case "crop":
-          Class<?> cropClass = Class.forName("io.distorio.op.crop.CropOperation");
-          return (ImageOperation) cropClass.getConstructor().newInstance();
-        case "transform":
-          Class<?> transformClass = Class.forName("io.distorio.op.transform.TransformOperation");
-          return (ImageOperation) transformClass.getConstructor().newInstance();
-        case "perspective_crop":
-          Class<?> perspectiveCropClass = Class.forName("io.distorio.op.perspective_crop.PerspectiveCropOperation");
-          return (ImageOperation) perspectiveCropClass.getConstructor().newInstance();
-        default:
-          // Fallback: return the original operation (this might cause issues with state)
-          return originalOp;
-      }
-    } catch (Exception e) {
-      System.err.println("Error creating new operation instance: " + e.getMessage());
+    // Use the registry to create a new instance using the provider system
+    ImageOperation newOp = OperationRegistry.createOperationById(opId);
+    
+    if (newOp != null) {
+      return newOp;
+    } else {
+      // Fallback: return the original operation if not found in registry
+      System.err.println("Warning: Operation not found in registry: " + opId);
       return originalOp;
     }
   }
@@ -658,12 +637,12 @@ public class MainWindow {
     }
     Alert alert = new Alert(
         AlertType.CONFIRMATION);
-    alert.setTitle("Unsaved Changes");
-    alert.setHeaderText("You have unsaved changes.");
-    alert.setContentText("Do you want to save your changes before proceeding?");
-    ButtonType save = new ButtonType("Save");
-    ButtonType dontSave = new ButtonType("Don't Save");
-    ButtonType cancel = new ButtonType("Cancel", ButtonBar.ButtonData.CANCEL_CLOSE);
+    alert.setTitle(I18n.get("dialog.unsaved_changes"));
+    alert.setHeaderText(I18n.get("dialog.unsaved_changes_header"));
+    alert.setContentText(I18n.get("dialog.unsaved_changes_content"));
+    ButtonType save = new ButtonType(I18n.get("dialog.save"));
+    ButtonType dontSave = new ButtonType(I18n.get("dialog.dont_save"));
+    ButtonType cancel = new ButtonType(I18n.get("dialog.cancel"), ButtonBar.ButtonData.CANCEL_CLOSE);
     alert.getButtonTypes().setAll(save, dontSave, cancel);
     Optional<ButtonType> result = alert.showAndWait();
     if (result.isPresent()) {
@@ -682,7 +661,7 @@ public class MainWindow {
       return;
     }
     FileChooser fileChooser = new FileChooser();
-    fileChooser.setTitle("Open Image");
+    fileChooser.setTitle(I18n.get("dialog.open_image"));
     fileChooser.getExtensionFilters().addAll(FileService.getImageExtensionFilters());
     File file = fileChooser.showOpenDialog(stage);
     if (file != null) {
@@ -702,9 +681,9 @@ public class MainWindow {
           // handle error: not a supported image
           try {
             Alert alert = new Alert(AlertType.ERROR);
-            alert.setTitle("Open Image Error");
-            alert.setHeaderText("Unsupported Image Format");
-            alert.setContentText("The selected file could not be opened as an image.");
+            alert.setTitle(I18n.get("dialog.open_image_error"));
+            alert.setHeaderText(I18n.get("dialog.unsupported_format"));
+            alert.setContentText(I18n.get("dialog.unsupported_format_content"));
             alert.showAndWait();
           } catch (Exception e) {
             System.err.println("Warning: Could not show error dialog: " + e.getMessage());
@@ -714,9 +693,9 @@ public class MainWindow {
         ex.printStackTrace();
         try {
           Alert alert = new Alert(AlertType.ERROR);
-          alert.setTitle("Open Image Error");
-          alert.setHeaderText("Failed to open image");
-          alert.setContentText("An error occurred while opening the image file.\n" + ex.getMessage());
+          alert.setTitle(I18n.get("dialog.open_image_error"));
+          alert.setHeaderText(I18n.get("dialog.failed_to_open"));
+          alert.setContentText(I18n.get("dialog.failed_to_open_content") + "\n" + ex.getMessage());
           alert.showAndWait();
         } catch (Exception e) {
           System.err.println("Warning: Could not show error dialog: " + e.getMessage());
@@ -1046,7 +1025,7 @@ public class MainWindow {
         clearOverlay();
         dirty = true;
         // Set window title to 'Untitled - Distorio' and mark as modified
-        stage.setTitle("*Untitled - Distorio");
+        stage.setTitle("*" + I18n.get("app.untitled") + " - " + I18n.get("app.title"));
       }
     }
   }
@@ -1077,7 +1056,7 @@ public class MainWindow {
       return false;
     }
     FileChooser fileChooser = new FileChooser();
-    fileChooser.setTitle("Save Image As");
+    fileChooser.setTitle(I18n.get("dialog.save_image"));
 
     List<FileChooser.ExtensionFilter> filters = FileService.getWriteFileFilters();
     fileChooser.getExtensionFilters().addAll(filters);
@@ -1132,7 +1111,7 @@ public class MainWindow {
 
 
   private void updateWindowTitle() {
-    String baseTitle = "Distorio";
+    String baseTitle = I18n.get("app.title");
     File file = imageContext.getImageFile();
     String prefix = dirty ? "*" : "";
     if (file != null) {

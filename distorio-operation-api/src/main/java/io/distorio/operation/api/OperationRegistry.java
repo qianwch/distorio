@@ -1,10 +1,33 @@
 package io.distorio.operation.api;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.ServiceLoader;
 
 public class OperationRegistry {
+
+  // Cache for operation providers by operation ID
+  private static final Map<String, ImageOperationProvider> providerCache = new HashMap<>();
+  private static volatile boolean cacheInitialized = false;
+
+  // Initialize the cache with all available providers
+  private static void initializeCache() {
+    if (!cacheInitialized) {
+      synchronized (OperationRegistry.class) {
+        if (!cacheInitialized) {
+          ServiceLoader<ImageOperationProvider> loader = ServiceLoader.load(ImageOperationProvider.class);
+          for (ImageOperationProvider provider : loader) {
+            ImageOperation operation = provider.create();
+            String operationId = operation.getMetadata().getId();
+            providerCache.put(operationId, provider);
+          }
+          cacheInitialized = true;
+        }
+      }
+    }
+  }
 
   public static List<ImageOperation> loadAllOperations() {
     List<ImageOperation> operations = new ArrayList<>();
@@ -27,6 +50,21 @@ public class OperationRegistry {
       operations.add(new OperationWithProvider(operation, providerClassLoader));
     }
     return operations;
+  }
+
+  /**
+   * Create a new instance of an operation by its ID using the provider system
+   */
+  public static ImageOperation createOperationById(String operationId) {
+    // Initialize cache if not already done
+    initializeCache();
+    
+    // Get provider from cache
+    ImageOperationProvider provider = providerCache.get(operationId);
+    if (provider != null) {
+      return provider.create();
+    }
+    return null; // Operation not found
   }
 
   /**
