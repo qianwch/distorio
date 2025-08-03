@@ -61,11 +61,12 @@ public class FileService {
         // List OpenCV supported output formats
         List<FileChooser.ExtensionFilter> filters = new ArrayList<>();
         filters.add(new FileChooser.ExtensionFilter("JPEG (*.jpg, *.jpeg)", "*.jpg", "*.jpeg"));
+        filters.add(new FileChooser.ExtensionFilter("JPEG 2000 (*.jp2)", "*.jp2"));
         filters.add(new FileChooser.ExtensionFilter("PNG (*.png)", "*.png"));
+        filters.add(new FileChooser.ExtensionFilter("GIF (*.gif)", "*.gif"));
         filters.add(new FileChooser.ExtensionFilter("BMP (*.bmp)", "*.bmp"));
         filters.add(new FileChooser.ExtensionFilter("TIFF (*.tiff, *.tif)", "*.tiff", "*.tif"));
         filters.add(new FileChooser.ExtensionFilter("WebP (*.webp)", "*.webp"));
-        filters.add(new FileChooser.ExtensionFilter("JPEG 2000 (*.jp2)", "*.jp2"));
         filters.add(new FileChooser.ExtensionFilter("PBM/PGM/PPM (*.pbm, *.pgm, *.ppm)", "*.pbm", "*.pgm", "*.ppm"));
         
         return filters;
