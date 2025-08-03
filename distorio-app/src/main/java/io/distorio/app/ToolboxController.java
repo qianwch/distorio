@@ -16,6 +16,7 @@ public class ToolboxController {
     private final List<ImageOperation> toolboxOperations = new ArrayList<>();
     private MainWindow.IconMode iconMode = MainWindow.IconMode.ICON_TEXT;
     private Button handButton;
+    private boolean handMode = false;
 
     public ToolboxController() {
         buildToolbox();

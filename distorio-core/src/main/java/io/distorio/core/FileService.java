@@ -1,24 +1,23 @@
 package io.distorio.core;
 
-import javafx.embed.swing.SwingFXUtils;
-import javafx.scene.image.Image;
-import javafx.stage.FileChooser;
-import javax.imageio.ImageIO;
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+
+import javafx.scene.image.Image;
+import javafx.stage.FileChooser;
 
 public class FileService {
     public static Image openImageFile(File file) throws Exception {
-        BufferedImage bufferedImage = ImageIO.read(file);
-        if (bufferedImage != null) {
-            return SwingFXUtils.toFXImage(bufferedImage, null);
+        long start = System.currentTimeMillis();
+        Image image = OpenCVUtils.openImageWithOpenCV(file);
+        long end = System.currentTimeMillis();
+        System.out.println("Time taken to read image with optimized OpenCV: " + (end - start) + "ms");
+        if (image != null) {
+            return image;
         } else {
-            throw new Exception("Unsupported Image Format");
+            throw new Exception("Unsupported Image Format or Failed to Open Image");
         }
     }
 
@@ -27,15 +26,10 @@ public class FileService {
     }
 
     public static boolean saveImageToFile(Image img, File file) throws Exception {
-        String ext = getImageExtension(file.getName());
         if (img == null || file == null) return false;
-        if (ext.equals("jpg") || ext.equals("jpeg")) {
-            BufferedImage rgbImage = toBufferedImageNoAlpha(img);
-            ImageIO.write(rgbImage, ext, file);
-        } else {
-            ImageIO.write(SwingFXUtils.fromFXImage(img, null), ext, file);
-        }
-        return true;
+        
+        // Use OpenCV for saving images, which provides better performance and format support
+        return OpenCVUtils.saveImageWithOpenCV(img, file);
     }
 
     public static String getImageExtension(String fileName) {
@@ -50,38 +44,31 @@ public class FileService {
     public static List<FileChooser.ExtensionFilter> getImageExtensionFilters() {
         List<FileChooser.ExtensionFilter> filters = new ArrayList<>();
         
-        // Create a single filter for all image formats that ImageIO can read
-        String[] readerSuffixes = ImageIO.getReaderFileSuffixes();
-        List<String> extensions = new ArrayList<>();
-        for (String ext : readerSuffixes) {
-            extensions.add("*." + ext.toLowerCase());
-        }
+        // OpenCV supports many image formats, create a comprehensive filter
+        String[] opencvFormats = {
+            "*.jpg", "*.jpeg", "*.png", "*.bmp", "*.tiff", "*.tif", 
+            "*.gif", "*.webp", "*.jp2", "*.pbm", "*.pgm", "*.ppm"
+        };
         
-        // Create a single filter with all readable image formats
-        String description = "All Image Files (" + String.join(", ", extensions) + ")";
-        filters.add(new FileChooser.ExtensionFilter(description, extensions.toArray(new String[0])));
+        // Create a single filter with all OpenCV supported image formats
+        String description = "All Image Files (" + String.join(", ", opencvFormats) + ")";
+        filters.add(new FileChooser.ExtensionFilter(description, opencvFormats));
         
         return filters;
     }
 
     public static List<FileChooser.ExtensionFilter> getWriteFileFilters() {
-        // List common types first
+        // List OpenCV supported output formats
         List<FileChooser.ExtensionFilter> filters = new ArrayList<>();
         filters.add(new FileChooser.ExtensionFilter("JPEG (*.jpg, *.jpeg)", "*.jpg", "*.jpeg"));
         filters.add(new FileChooser.ExtensionFilter("PNG (*.png)", "*.png"));
         filters.add(new FileChooser.ExtensionFilter("BMP (*.bmp)", "*.bmp"));
-        filters.add(new FileChooser.ExtensionFilter("GIF (*.gif)", "*.gif"));
-    
-        // Add less common types from ImageIO, skipping those already added
-        Set<String> commonExts = Set.of("png", "jpg", "jpeg", "bmp", "gif");
-        String[] suffixes = ImageIO.getWriterFileSuffixes();
-        for (String ext : suffixes) {
-          String lower = ext.toLowerCase();
-          if (!commonExts.contains(lower)) {
-            filters.add(new FileChooser.ExtensionFilter((lower.toUpperCase() + " (*." + lower + ")"), "*." + lower));
-          }
-        }
+        filters.add(new FileChooser.ExtensionFilter("TIFF (*.tiff, *.tif)", "*.tiff", "*.tif"));
+        filters.add(new FileChooser.ExtensionFilter("WebP (*.webp)", "*.webp"));
+        filters.add(new FileChooser.ExtensionFilter("JPEG 2000 (*.jp2)", "*.jp2"));
+        filters.add(new FileChooser.ExtensionFilter("PBM/PGM/PPM (*.pbm, *.pgm, *.ppm)", "*.pbm", "*.pgm", "*.ppm"));
+        
         return filters;
-      }
+    }
     
 } 

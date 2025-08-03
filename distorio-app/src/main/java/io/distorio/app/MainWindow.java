@@ -1,12 +1,9 @@
 package io.distorio.app;
 
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-
-import javax.imageio.ImageIO;
 
 import io.distorio.core.FileService;
 import io.distorio.core.HistoryService;
@@ -16,7 +13,6 @@ import io.distorio.operation.api.ImageOperation;
 import io.distorio.operation.api.OperationRegistry;
 import io.distorio.ui.common.I18n;
 import javafx.application.Platform;
-import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -356,27 +352,13 @@ public class MainWindow {
         for (File file : db.getFiles()) {
           if (isImageFile(file)) {
             try {
-              BufferedImage bufferedImage = ImageIO.read(file);
-              if (bufferedImage != null) {
-                Image img = SwingFXUtils.toFXImage(bufferedImage, null);
-                imageContext.setImage(img);
-                imageContext.setImageFile(file);
-                imageContext.setSelection(0, 0, 0, 0);
-                updateImageView();
-                clearOverlay();
-                success = true;
-              } else {
-                // handle error: not a supported image
-                try {
-                  Alert alert = new Alert(AlertType.ERROR);
-                  alert.setTitle(I18n.get("dialog.open_image_error"));
-                  alert.setHeaderText(I18n.get("dialog.unsupported_format"));
-                  alert.setContentText(I18n.get("dialog.dropped_file_error"));
-                  alert.showAndWait();
-                } catch (Exception e) {
-                  System.err.println("Warning: Could not show error dialog: " + e.getMessage());
-                }
-              }
+              Image img = FileService.openImageFile(file);
+              imageContext.setImage(img);
+              imageContext.setImageFile(file);
+              imageContext.setSelection(0, 0, 0, 0);
+              updateImageView();
+              clearOverlay();
+              success = true;
             } catch (Exception ex) {
               ex.printStackTrace();
               try {
@@ -653,29 +635,15 @@ public class MainWindow {
     File file = fileChooser.showOpenDialog(stage);
     if (file != null) {
       try {
-        BufferedImage bufferedImage = ImageIO.read(file);
-        if (bufferedImage != null) {
-          Image img = SwingFXUtils.toFXImage(bufferedImage, null);
-          imageContext.setImage(img);
-          imageContext.setImageFile(file);
-          // Calculate initial zoom to fit image in viewport
-          calculateInitialZoom(img);
-          updateImageView();
-          updateWindowTitle();
-          dirty = false;
-          updateWindowTitle();
-        } else {
-          // handle error: not a supported image
-          try {
-            Alert alert = new Alert(AlertType.ERROR);
-            alert.setTitle(I18n.get("dialog.open_image_error"));
-            alert.setHeaderText(I18n.get("dialog.unsupported_format"));
-            alert.setContentText(I18n.get("dialog.unsupported_format_content"));
-            alert.showAndWait();
-          } catch (Exception e) {
-            System.err.println("Warning: Could not show error dialog: " + e.getMessage());
-          }
-        }
+        Image img = FileService.openImageFile(file);
+        imageContext.setImage(img);
+        imageContext.setImageFile(file);
+        // Calculate initial zoom to fit image in viewport
+        calculateInitialZoom(img);
+        updateImageView();
+        updateWindowTitle();
+        dirty = false;
+        updateWindowTitle();
       } catch (Exception ex) {
         ex.printStackTrace();
         try {

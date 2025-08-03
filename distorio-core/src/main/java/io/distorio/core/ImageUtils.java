@@ -1,13 +1,14 @@
 package io.distorio.core;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
-import javafx.scene.image.WritableImage;
 import javafx.scene.image.PixelWriter;
-import java.awt.image.BufferedImage;
-import java.awt.Graphics2D;
-import java.awt.Color;
+import javafx.scene.image.WritableImage;
 
 public class ImageUtils {
     

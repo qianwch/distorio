@@ -5,6 +5,7 @@ module io.distorio.core {
     requires java.prefs;
     requires java.logging;
     requires io.distorio.operation.api;
-    
+    requires opencv; // Automatic module - name may be unstable
+
     exports io.distorio.core;
 } 
