@@ -1,24 +1,20 @@
 package io.distorio.app;
 
-import io.distorio.core.FileService;
-import io.distorio.core.ThemeService;
-import io.distorio.core.HistoryService;
-import io.distorio.core.ImageContext;
-import io.distorio.core.ConfigService;
-import io.distorio.core.LoggingService;
-import io.distorio.operation.api.ImageOperation;
-import io.distorio.operation.api.OperationRegistry;
-import io.distorio.ui.common.I18n;
-import io.distorio.ui.common.IconUtil;
-import java.awt.Color;
-import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
+
+import javax.imageio.ImageIO;
+
+import io.distorio.core.FileService;
+import io.distorio.core.HistoryService;
+import io.distorio.core.ImageContext;
+import io.distorio.core.ThemeService;
+import io.distorio.operation.api.ImageOperation;
+import io.distorio.operation.api.OperationRegistry;
+import io.distorio.ui.common.I18n;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
@@ -39,26 +35,21 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Slider;
 import javafx.scene.control.ToggleGroup;
-import javafx.scene.control.ToolBar;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.control.Tooltip;
-import javax.imageio.ImageIO;
 
 public class MainWindow {
-
   private final BorderPane root = new BorderPane();
   private final MenuBar menuBar = new MenuBar();
   private final ScrollPane scrollPane = new ScrollPane();
@@ -74,7 +65,6 @@ public class MainWindow {
   private IconMode iconMode = IconMode.ICON_TEXT;
   private double zoom = 1.0;
   private boolean handMode = false;
-  private Button handButton;
   private double selectionStartX, selectionStartY;
   private double selectionEndX, selectionEndY;
   private boolean isSelecting = false;
@@ -177,7 +167,6 @@ public class MainWindow {
     redoItem.setOnAction((ActionEvent e) -> handleRedo());
     copyItem.setOnAction((ActionEvent e) -> handleCopy());
     pasteItem.setOnAction((ActionEvent e) -> handlePaste());
-    // handItem is now handled in buildToolsMenu()
 
     // Toolbar
     toolbarController = new ToolbarController(iconMode, modSymbol);
@@ -196,9 +185,9 @@ public class MainWindow {
     List<Button> opButtons = toolboxController.getToolboxButtons();
     List<ImageOperation> opList = toolboxController.getToolboxOperations();
     for (int i = 0; i < opButtons.size(); i++) {
-        Button btn = opButtons.get(i);
-        ImageOperation op = opList.get(i);
-        btn.setOnAction(e -> handleOperation(op));
+      Button btn = opButtons.get(i);
+      ImageOperation op = opList.get(i);
+      btn.setOnAction(e -> handleOperation(op));
     }
     // Set action handler for hand button
     toolboxController.getHandButton().setOnAction(e -> setHandMode(!handMode));
@@ -219,10 +208,8 @@ public class MainWindow {
     });
     updateZoomPercentLabel();
 
-    // Main area with scroll pane to handle zoom properly
     mainArea.getChildren().clear();
 
-    // Use a simple pane as container for better control
     Pane imageContainer = new Pane();
     imageContainer.getChildren().add(imageView);
 
@@ -234,7 +221,6 @@ public class MainWindow {
     scrollPane.setPannable(false); // Start with panning disabled
     mainArea.getChildren().addAll(scrollPane, overlayPane);
 
-    // Add listener to viewport bounds to ensure centering (with debouncing)
     scrollPane.viewportBoundsProperty().addListener((obs, oldBounds, newBounds) -> {
       if (imageView.getImage() != null && oldBounds != null && newBounds != null) {
         // Only center if the viewport actually changed significantly
@@ -338,7 +324,6 @@ public class MainWindow {
         double w = Math.abs(selectionEndX - selectionStartX);
         double h = Math.abs(selectionEndY - selectionStartY);
         imageContext.setSelection(x, y, w, h);
-        // TODO: notify current operation of selection
       }
     });
 
@@ -563,25 +548,20 @@ public class MainWindow {
     menuBar.getMenus().addAll(fileMenu, editMenu, toolsMenu, viewMenu, helpMenu);
 
     // Reattach menu item actions
-    openItem.setOnAction((ActionEvent e) -> handleOpen(null)); // TODO: pass stage reference
+    openItem.setOnAction((ActionEvent e) -> handleOpen(null));
     undoItem.setOnAction((ActionEvent e) -> handleUndo());
     redoItem.setOnAction((ActionEvent e) -> handleRedo());
   }
 
-
   private void handleOperation(ImageOperation op) {
-    // TODO: implement operation preparation, preview, apply, and undo/redo logic
-    System.out.println("Operation invoked: " + op.getMetadata().getDisplayName());
-    
-    // Check if there's an image before applying operation
     if (imageContext.getImage() == null) {
       System.out.println("No image loaded, operation skipped: " + op.getMetadata().getDisplayName());
       return;
     }
-    
+
     // Create a new operation instance to ensure each operation has its own state
     ImageOperation newOp = createNewOperationInstance(op);
-    
+
     boolean ready = newOp.prepare(imageContext);
     if (ready) {
       newOp.preview(imageContext); // For now, just call preview
@@ -591,24 +571,22 @@ public class MainWindow {
       dirty = true;
       updateWindowTitle();
     } else {
-      // TODO: show preparation UI (e.g., selection, drag handles)
     }
   }
 
   /**
-   * Creates a new instance of the given operation to ensure each operation has its own state
+   * Creates a new instance of the given operation to ensure each operation has
+   * its own state
    */
   private ImageOperation createNewOperationInstance(ImageOperation originalOp) {
     String opId = originalOp.getMetadata().getId();
-    
+
     // Use the registry to create a new instance using the provider system
     ImageOperation newOp = OperationRegistry.createOperationById(opId);
-    
+
     if (newOp != null) {
       return newOp;
     } else {
-      // Fallback: return the original operation if not found in registry
-      System.err.println("Warning: Operation not found in registry: " + opId);
       return originalOp;
     }
   }
@@ -618,7 +596,12 @@ public class MainWindow {
     if (op != null) {
       op.undo(imageContext);
       updateImageView();
-      System.out.println("Undo: " + op.getMetadata().getDisplayName());
+      
+      // Check if all operations have been undone
+      if (!operationHistory.canUndo()) {
+        dirty = false;
+        updateWindowTitle();
+      }
     }
   }
 
@@ -628,6 +611,10 @@ public class MainWindow {
       op.redo(imageContext);
       updateImageView();
       System.out.println("Redo: " + op.getMetadata().getDisplayName());
+      
+      // Redoing an operation means there are unsaved changes
+      dirty = true;
+      updateWindowTitle();
     }
   }
 
@@ -936,7 +923,7 @@ public class MainWindow {
       double y = Math.min(selectionStartY, selectionEndY);
       double w = Math.abs(selectionEndX - selectionStartX);
       double h = Math.abs(selectionEndY - selectionStartY);
-      return new double[]{x, y, w, h};
+      return new double[] { x, y, w, h };
     }
     return null;
   }
@@ -1109,7 +1096,6 @@ public class MainWindow {
     return false; // User cancelled the save dialog
   }
 
-
   private void updateWindowTitle() {
     String baseTitle = I18n.get("app.title");
     File file = imageContext.getImageFile();
@@ -1131,5 +1117,7 @@ public class MainWindow {
     return FileService.isImageFile(file);
   }
 
-  public enum IconMode {ICON_ONLY, ICON_TEXT}
+  public enum IconMode {
+    ICON_ONLY, ICON_TEXT
+  }
 }

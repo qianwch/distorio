@@ -1,13 +1,14 @@
 package io.distorio.app;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import io.distorio.operation.api.ImageOperation;
 import io.distorio.operation.api.OperationRegistry;
 import io.distorio.ui.common.IconUtil;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.layout.VBox;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ToolboxController {
     private final VBox toolbox = new VBox();
@@ -15,7 +16,6 @@ public class ToolboxController {
     private final List<ImageOperation> toolboxOperations = new ArrayList<>();
     private MainWindow.IconMode iconMode = MainWindow.IconMode.ICON_TEXT;
     private Button handButton;
-    private boolean handMode = false;
 
     public ToolboxController() {
         buildToolbox();

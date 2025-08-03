@@ -31,7 +31,7 @@ public class FileService {
         if (img == null || file == null) return false;
         if (ext.equals("jpg") || ext.equals("jpeg")) {
             BufferedImage rgbImage = toBufferedImageNoAlpha(img);
-            ImageIO.write(rgbImage, "jpg", file);
+            ImageIO.write(rgbImage, ext, file);
         } else {
             ImageIO.write(SwingFXUtils.fromFXImage(img, null), ext, file);
         }
